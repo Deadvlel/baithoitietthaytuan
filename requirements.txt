@@ -1,0 +1,7 @@
+openmeteo_requests
+pandas
+requests
+retry_requests
+pymongo
+matplotlib
+seaborn 
