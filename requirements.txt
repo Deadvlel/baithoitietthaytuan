@@ -4,4 +4,8 @@ requests
 retry_requests
 pymongo
 matplotlib
-seaborn 
+seaborn
+numpy
+scikit-learn
+fastapi
+uvicorn
