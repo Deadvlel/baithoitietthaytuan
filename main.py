@@ -21,5 +21,5 @@ def scheduled_job():
 
 # Khởi động scheduler
 scheduler = BackgroundScheduler()
-scheduler.add_job(scheduled_job, "interval", seconds=10)
+scheduler.add_job(scheduled_job, "interval", minutes=5)
 scheduler.start()
