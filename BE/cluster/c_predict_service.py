@@ -50,13 +50,13 @@ class WeatherPredictor:
         final_result = base_label
         note = "AI Decision"
         
-        if nearest_cluster_id == 0 and precipitation >= 0.1:
+        if nearest_cluster_id in [0, 1, 5] and precipitation >= 0.1:
             final_result = "Mưa phùn"
-            note = "Rule Override: Precip > 0.1 in Overcast"
+            note = f"Rule Override: Precip > 0.1 in Cluster {nearest_cluster_id}"
 
-        if precipitation > 0 and temperature <= 1.0:
+        if nearest_cluster_id in [0, 4, 5] and precipitation > 0.6 and temperature <= 6.0:
             final_result = "Tuyết rơi"
-            note = f"Rule Override: Snow logic (Temp {temperature}°C)"
+            note = f"Snow Rule: Cluster {nearest_cluster_id}, Temp {temperature}°C"
 
         return {
             "predicted_label": final_result,
