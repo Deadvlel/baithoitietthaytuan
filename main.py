@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
@@ -25,7 +25,8 @@ app.include_router(cluster_router, prefix="/cluster", tags=["Weather AI"])
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to Weather AI API"}
+    # Redirect sang trang Swagger UI
+    return RedirectResponse(url="/docs")
 
 # Predict
 # Background job chạy mỗi 5 phút
