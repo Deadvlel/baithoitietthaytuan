@@ -5,6 +5,5 @@ venv/
 __pycache__/
 routes/__pycache__/
 
-*.ipynb
-!ingestion/extract.ipynb
+
 

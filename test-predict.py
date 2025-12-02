@@ -70,3 +70,4 @@ if __name__ == "__main__":
         print("✅ Dự đoán cho cả ngày mai:")
         for k, v in result.items():
             print(f"{k}: {v}")
+

@@ -8,14 +8,14 @@ client = MongoClient("mongodb://localhost:27017")
 db = client["weather_db"]
 collection = db["new_york_hourly"]
 
-__all__ = ["db", "collection", "predict_weather_next_day", "router"]
+__all__ = ["db", "collection", "predict_weather_next_day"]
 
 # Load models
-with open("./models/cloudcover_model.pkl", "rb") as f:
+with open("models/pkl/cloudcover_model.pkl", "rb") as f:
     model_cloud = pickle.load(f)
-with open("./models/temperature_model.pkl", "rb") as f:
+with open("models/pkl/temperature_model.pkl", "rb") as f:
     model_temp = pickle.load(f)
-with open("./models/precipitation_model.pkl", "rb") as f:
+with open("models/pkl/precipitation_model.pkl", "rb") as f:
     model_prec = pickle.load(f)
 
 logs_collection = db["prediction_logs"]
