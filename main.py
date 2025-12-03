@@ -16,6 +16,8 @@ from routes.cluster_routes import router as cluster_router
 import controller.predict_controller as predict_controller
 from controller.data_analysis_controller import generate_charts
 
+from controller.clustering_services_controller import update_weather_centroids
+
 app = FastAPI()
 
 # Include routes
@@ -37,10 +39,18 @@ def scheduled_job():
         predict_controller.db["predictions_log"].insert_many(result.to_dict(orient="records"))
         print(f"[{datetime.now()}] Auto predict saved for {today_str}")
 
+# hàm chạy cluster 
+def cluster_job():
+    print(f"chay")
+    try:
+        update_weather_centroids() 
+    except Exception as e:
+        print(f"Lỗi update cluster: {e}")
 
 # Khởi động scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(scheduled_job, "interval", minutes=5)
+scheduler.add_job(cluster_job, "cron", hour=8, minute=2)
 scheduler.start()
 
 # Data Analysis
@@ -54,7 +64,6 @@ def start_bg_job():
     thread = Thread(target=background, daemon=True)
     thread.start()
 
-# Clus
 # Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,
