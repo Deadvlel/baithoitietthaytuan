@@ -16,6 +16,7 @@ from routes.ingestion_router import router as ingestion_router
 
 # Import controllers
 import controller.predict_controller as predict_controller
+from controller.clustering_services_controller import update_weather_centroids
 
 app = FastAPI()
 
@@ -50,10 +51,18 @@ def scheduled_job():
     if result is not None:
         print(f"[{datetime.now()}] Auto predict saved for {today_str}")
 
+def cluster_job():
+    print(f"[{datetime.now()}] Đang chạy job cập nhật Cluster...")
+    try:
+        update_weather_centroids() 
+        print("thành công.")
+    except Exception as e:
+        print(" Lỗi update cluster: {e}")
 
 # Khởi động scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(scheduled_job, "interval", minutes=5)
+scheduler.add_job(cluster_job, "cron", hour=0, minute=0)
 scheduler.start()
 
 # Cấu hình CORS

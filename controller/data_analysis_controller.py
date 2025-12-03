@@ -305,3 +305,38 @@ def get_chart_data(
         "chart_kind không hợp lệ. Hỗ trợ: "
         "'time_series', 'histogram', 'trend_monthly', 'seasonality_monthly', 'seasonal_yearly_comparison'"
     )
+def get_correlation_matrix():
+    """
+    Tính và trả về ma trận correlation của tất cả các biến số
+    (loại bỏ cột 'date' và 'Unnamed: 0' nếu có)
+    """
+    df = load_data()
+    if df is None or df.empty:
+        return None
+    
+    # Reset index để loại bỏ cột date
+    df_numeric = df.reset_index(drop=True)
+    
+    # Loại bỏ các cột không cần thiết
+    columns_to_drop = ['Unnamed: 0', 'date']
+    df_numeric = df_numeric.drop(columns=columns_to_drop, errors='ignore')
+    
+    # Chỉ giữ các cột numeric
+    df_numeric = df_numeric.select_dtypes(include=[np.number])
+    
+    # Tính correlation matrix
+    corr_matrix = df_numeric.corr()
+    
+    return {
+        "variables": corr_matrix.columns.tolist(),
+        "matrix": corr_matrix.values.tolist(),
+        "data": [
+            {
+                "var1": var1,
+                "var2": var2,
+                "correlation": round(corr_matrix.loc[var1, var2], 3)
+            }
+            for var1 in corr_matrix.columns
+            for var2 in corr_matrix.columns
+        ]
+    }

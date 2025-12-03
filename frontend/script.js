@@ -272,15 +272,56 @@ function renderSeasonalityChart(canvasId, data, label) {
  * 5. LOGIC GIAO DIỆN (UI EVENTS)
  ************************************************************/
 document.addEventListener("DOMContentLoaded", () => {
+    
+    // Lấy sidebar element
+    const analysisSidebar = document.getElementById("main-analysis-sidebar");
 
     /* --- TAB NAVIGATION --- */
     document.querySelectorAll(".tab-button").forEach((btn) => {
         btn.addEventListener("click", () => {
             const id = btn.dataset.tab;
+            
+            // Ẩn/hiện sidebar dựa trên tab được chọn
+            if (id === "tab-analysis" && analysisSidebar) {
+                // Kiểm tra media query để chỉ hiện trên màn hình lớn
+                if (window.matchMedia("(min-width: 1025px)").matches) {
+                    analysisSidebar.style.display = "block";
+                }
+            } else if (analysisSidebar) {
+                analysisSidebar.style.display = "none";
+            }
+
             document.querySelectorAll(".tab-button").forEach((b) => b.classList.remove("active"));
             document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
             btn.classList.add("active");
             document.getElementById(id)?.classList.add("active");
+        });
+    });
+
+    // Ban đầu, thiết lập trạng thái ẩn/hiện của sidebar
+    const activeTabId = document.querySelector(".tab-button.active").dataset.tab;
+    if (analysisSidebar) {
+        if (activeTabId === "tab-analysis" && window.matchMedia("(min-width: 1025px)").matches) {
+            analysisSidebar.style.display = "block";
+        } else {
+            analysisSidebar.style.display = "none";
+        }
+    }
+
+
+    /* --- ANALYSIS QUICK NAV --- */
+    document.querySelectorAll(".analysis-nav-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const targetId = btn.dataset.target;
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                // Cuộn mượt mà đến phần tử, trừ đi một khoảng offset nhỏ cho thanh header/tabs
+                // 90px (Header) + ~60px (Sticky Tabs) + 10px (khoảng cách) = ~160px
+                window.scrollTo({
+                    top: targetEl.offsetTop - 160, 
+                    behavior: 'smooth'
+                });
+            }
         });
     });
 
@@ -341,16 +382,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-q1-draw")?.addEventListener("click", async () => {
         const variable = document.getElementById("q1-variable")?.value;
         const chartType = document.getElementById("q1-chart-type")?.value;
-        const rangeDays = document.getElementById("q1-window")?.value; // Lấy giá trị phạm vi
-        const resampleFreq = document.getElementById("q1-resample-freq")?.value; // LẤY TẦN SUẤT GỘP
+        const rangeDays = document.getElementById("q1-window")?.value; 
+        const resampleFreq = document.getElementById("q1-resample-freq")?.value; 
 
         setResult("q1-result", "Đang tải dữ liệu...");
         const params = {
             variable,
             chart_kind: chartType === "histogram" ? "histogram" : "time_series",
-            days: rangeDays, // Gửi phạm vi
+            days: rangeDays, 
             bins: document.getElementById("q1-bins")?.value,
-            resample_freq: resampleFreq, // GỬI TẦN SUẤT GỘP MỚI
+            resample_freq: resampleFreq, 
         };
         const json = await fetchChart(params);
         if (json.status !== "success") return setResult("q1-result", json);
@@ -362,9 +403,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.kind === "histogram") {
             q1Chart = renderHistogramChart("q1-chart", data, `${data.variable} - histogram`);
         } else {
-            // Nhãn trục Y sẽ được lấy từ data.y_label bên trong renderLineLikeChart
             q1Chart = renderLineLikeChart("q1-chart", data, {
-                label: `${data.x_label}`, // Dùng x_label làm label dataset tạm, y_label sẽ dùng từ data.y_label
+                label: `${data.x_label}`, 
                 isScatter: chartType === "scatter",
                 fillArea: chartType !== "scatter",
             });
@@ -468,3 +508,118 @@ function updateClusterUI(data) {
     document.getElementById("w-note").textContent = data.logic_note;
     document.getElementById("cluster-visual-result").style.display = "block";
 }
+/**
+ * Tạo màu nền OPAQUE (RGB) cho ô ma trận correlation dựa trên giá trị (từ -1 đến 1).
+ * Sử dụng nội suy giữa Màu Trắng và Màu Cực Đại (Xanh/Đỏ) để tạo hiệu ứng Heatmap.
+ * @param {number} value 
+ * @returns {string} Màu nền CSS (rgb)
+ */
+function getCorrelationColor(value) {
+    if (isNaN(value)) return 'rgb(243, 244, 246)'; // Màu nền xám nhẹ cho NaN
+    
+    const clampedValue = Math.max(-1, Math.min(1, value));
+    const absValue = Math.abs(clampedValue);
+    const white = 255;
+    
+    let r, g, b;
+
+    if (clampedValue > 0) {
+        // Blue transition (Positive): từ White (255) đến Deep Blue (~67, 97, 238)
+        const R_blue = 67;
+        const G_blue = 97;
+        const B_blue = 238;
+        
+        // Công thức nội suy: White + (Màu Đích - White) * |Giá trị|
+        r = Math.round(white + (R_blue - white) * absValue);
+        g = Math.round(white + (G_blue - white) * absValue);
+        b = Math.round(white + (B_blue - white) * absValue);
+        
+    } else if (clampedValue < 0) {
+        // Red transition (Negative): từ White (255) đến Deep Red (~239, 68, 68)
+        const R_red = 239;
+        const G_red = 68;
+        const B_red = 68;
+        
+        // Công thức nội suy: White + (Màu Đích - White) * |Giá trị|
+        r = Math.round(white + (R_red - white) * absValue);
+        g = Math.round(white + (G_red - white) * absValue);
+        b = Math.round(white + (B_red - white) * absValue);
+        
+    } else {
+        // Gần bằng 0 (No correlation): Light Gray
+        return 'rgb(229, 231, 235)';
+    }
+
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Render ma trận tương quan thành một bảng HTML.
+ * @param {string[]} variables 
+ * @param {number[][]} matrix 
+ */
+function renderCorrelationTable(variables, matrix) {
+    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center;">';
+    
+    // Header Row... (Giữ nguyên)
+
+    // Data Rows
+    html += '<tbody>';
+    for (let i = 0; i < variables.length; i++) {
+        html += `<tr>`;
+        // Header cột đầu tiên... (Giữ nguyên)
+        
+        // Các ô dữ liệu
+        for (let j = 0; j < variables.length; j++) {
+            const value = matrix[i][j];
+            const isDiagonal = (i === j);
+            const displayValue = isDiagonal ? '1.000' : (value !== null && value !== undefined) ? value.toFixed(3) : 'NaN';
+            
+            // *** ĐIỀU CHỈNH MÀU ĐƯỜNG CHÉO: Dùng màu xanh dương rất nhạt (RGB) ***
+            const bgColor = isDiagonal ? 'rgb(220, 230, 255)' : getCorrelationColor(value); 
+            
+            // LOGIC MÀU CHỮ: Vẫn dùng màu trắng cho nền đậm (> 0.6)
+            const textColor = isDiagonal ? 'var(--primary-color)' : 
+                              (Math.abs(value) > 0.6) ? '#ffffff' : 'var(--text-main)';
+html += `<td style="padding: 10px; border: 1px solid #e5e7eb; background-color: ${bgColor}; color: ${textColor}; font-weight: ${isDiagonal ? 700 : 500};">
+                        ${displayValue}
+                     </td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</tbody>';
+    html += '</table>';
+
+    document.getElementById('q4-corr-matrix-table').innerHTML = html;
+}
+
+document.getElementById('btn-q4-load-corr').addEventListener('click', async () => {
+    const resultBox = document.getElementById('q4-result');
+    const matrixContainer = document.getElementById('q4-corr-matrix-table');
+    const loadButton = document.getElementById('btn-q4-load-corr');
+
+    resultBox.textContent = 'Đang tải dữ liệu...';
+    matrixContainer.innerHTML = '';
+    loadButton.disabled = true;
+
+    try {
+        const response = await fetch('/analysis/correlation-matrix');
+        const jsonResponse = await response.json();
+
+        resultBox.textContent = JSON.stringify(jsonResponse, null, 2);
+        
+        if (jsonResponse.status === 'success') {
+            const { variables, matrix } = jsonResponse;
+            renderCorrelationTable(variables, matrix);
+            document.getElementById('q4-corr-container').querySelector('p').style.display = 'none'; // Ẩn placeholder
+        } else {
+            matrixContainer.innerHTML = `<p style="color: #ef4444; text-align: center;">Lỗi: ${jsonResponse.message || 'Không thể lấy ma trận tương quan.'}</p>`;
+        }
+
+    } catch (error) {
+        resultBox.textContent = `Lỗi kết nối API: ${error.message}`;
+        matrixContainer.innerHTML = `<p style="color: #ef4444; text-align: center;">Lỗi kết nối: ${error.message}</p>`;
+    } finally {
+        loadButton.disabled = false;
+    }
+});

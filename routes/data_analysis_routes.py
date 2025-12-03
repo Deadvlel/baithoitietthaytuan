@@ -4,6 +4,7 @@ from typing import Optional # Import Optional
 from controller.data_analysis_controller import (
     VARIABLES,
     get_chart_data,
+    get_correlation_matrix,
 )
 
 
@@ -15,6 +16,20 @@ def list_variables():
     """Trả về danh sách các biến hỗ trợ."""
     return {"status": "success", "variables": VARIABLES}
 
+@router.get("/correlation-matrix")
+def api_correlation_matrix():
+    """
+    Trả về ma trận correlation của tất cả các biến số.
+    """
+    try:
+        result = get_correlation_matrix()
+        if result is None:
+            return {"status": "error", "message": "Không có dữ liệu"}
+        
+        return {"status": "success", **result}
+    
+    except Exception as e:
+        return {"status": "error", "message": str(e)}   
 
 @router.get("/chart-data")
 def api_chart_data(
