@@ -1,21 +1,56 @@
 from fastapi import APIRouter
-from fastapi.responses import FileResponse
-import os
 
-from controller.data_analysis_controller import generate_charts, IMAGE_OUTPUT_DIR
+from controller.data_analysis_controller import (
+    VARIABLES,
+    get_chart_data,
+)
+
 
 router = APIRouter()
 
-# Lấy ảnh theo tên file
-@router.get("/image/{filename}")
-def get_image(filename: str):
-    path = os.path.join(IMAGE_OUTPUT_DIR, filename)
-    if os.path.exists(path):
-        return FileResponse(path)
-    return {"error": "Image not found"}
 
-# Route trigger manual refresh
-@router.post("/refresh")
-def refresh_charts():
-    generate_charts()
-    return {"status": "ok", "message": "Charts updated manually"}
+@router.get("/variables")
+def list_variables():
+    """Trả về danh sách các biến hỗ trợ."""
+    return {"status": "success", "variables": VARIABLES}
+
+
+@router.get("/chart-data")
+def api_chart_data(
+    variable: str,
+    chart_kind: str = "time_series",
+    days: int = 30,
+    bins: int = 20,
+):
+    """
+    API chính cho FE lấy dữ liệu vẽ chart.
+
+    - variable: 'temperature' | 'relative_humidity' | 'precipitation'
+    - chart_kind:
+        + 'time_series'          -> line/scatter theo thời gian (trong `days` ngày gần nhất)
+        + 'histogram'            -> histogram trong `days` ngày gần nhất
+        + 'trend_monthly'        -> trend resample theo tháng
+        + 'seasonality_monthly'  -> seasonal line theo Month (1-12)
+    - days: số ngày gần nhất dùng cho time_series / histogram
+    - bins: số bins cho histogram
+    """
+    try:
+        result = get_chart_data(
+            variable=variable,
+            chart_kind=chart_kind,  # type: ignore[arg-type]
+            days=days,
+            bins=bins,
+        )
+        if result is None:
+            return {"status": "error", "message": "No data in database"}
+
+        return {
+            "status": "success",
+            "variables": VARIABLES,
+            "data": result,
+        }
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    except Exception as e:
+        return {"status": "error", "message": f"Internal error: {e}"}
+

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Weather AI Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="app-header-left">
+        <h1>Weather AI Dashboard</h1>
+        <p>Theo dõi dự báo, phân cụm và phân tích dữ liệu thời tiết từ hệ thống AI.</p>
+      </div>
+      <div class="app-header-right">
+        <span class="badge badge-live"></span>
+        <span class="badge-text">Backend: FastAPI</span>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="nav-tabs" aria-label="Weather sections">
+        <button class="tab-button active" data-tab="tab-forecast">Dự báo</button>
+        <button class="tab-button" data-tab="tab-cluster">Cluster</button>
+        <button class="tab-button" data-tab="tab-analysis">Phân tích dữ liệu</button>
+      </section>
+
+      <!-- TAB: Forecast -->
+      <section id="tab-forecast" class="tab-panel active">
+        <div class="grid-2">
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <h2>Dự báo theo ngày</h2>
+                <p class="card-subtitle">Chọn ngày để xem dự báo thời tiết.</p>
+              </div>
+            </header>
+            <div class="card-body">
+              <div class="field-row">
+                <label for="predict-date">Ngày (YYYY-MM-DD)</label>
+                <input type="date" id="predict-date" />
+                <button id="btn-predict">Lấy dự báo</button>
+              </div>
+              <pre id="predict-result" class="result-box">Kết quả dự báo sẽ hiển thị ở đây...</pre>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- TAB: Cluster -->
+      <section id="tab-cluster" class="tab-panel">
+        <div class="grid-2">
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <h2>Cluster tự động</h2>
+                <p class="card-subtitle">Dùng bản ghi dự báo mới nhất trong DB.</p>
+              </div>
+            </header>
+            <div class="card-body">
+              <button id="btn-cluster-auto">Chạy cluster auto</button>
+              <pre id="cluster-auto-result" class="result-box">Kết quả cluster auto sẽ hiển thị ở đây...</pre>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <h2>Cluster nhập tay</h2>
+                <p class="card-subtitle">Nhập precipitation, cloudcover, temperature.</p>
+              </div>
+            </header>
+            <div class="card-body">
+              <div class="field-grid">
+                <div>
+                  <label for="precipitation">Precipitation</label>
+                  <input type="number" step="0.01" id="precipitation" placeholder="mm" />
+                </div>
+                <div>
+                  <label for="cloudcover">Cloudcover</label>
+                  <input type="number" step="0.01" id="cloudcover" placeholder="%" />
+                </div>
+                <div>
+                  <label for="temperature">Temperature</label>
+                  <input type="number" step="0.01" id="temperature" placeholder="°C" />
+                </div>
+              </div>
+              <button id="btn-cluster-manual">Chạy cluster manual</button>
+              <pre id="cluster-manual-result" class="result-box">Kết quả cluster manual sẽ hiển thị ở đây...</pre>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- TAB: Analysis -->
+      <section id="tab-analysis" class="tab-panel">
+        <!-- Câu 1 -->
+        <section class="card">
+          <header class="card-header">
+            <div>
+              <h2>Câu 1 – Dữ liệu theo thời gian</h2>
+              <p class="card-subtitle">
+                Chọn biến, kiểu chart (Line / Scatter / Histogram) và khoảng thời gian (tuần / tháng).
+              </p>
+            </div>
+          </header>
+          <div class="card-body">
+            <div class="analysis-controls">
+              <div class="control-group">
+                <label for="q1-variable">Biến</label>
+                <select id="q1-variable">
+                  <option value="temperature">Temperature</option>
+                  <option value="relative_humidity">Relative Humidity</option>
+                  <option value="precipitation">Precipitation</option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label for="q1-chart-type">Loại chart</label>
+                <select id="q1-chart-type">
+                  <option value="line">Line</option>
+                  <option value="scatter">Scatter</option>
+                  <option value="histogram">Histogram</option>
+                </select>
+              </div>
+
+              <div class="control-group control-inline">
+                <label for="q1-window">Khoảng thời gian</label>
+                <select id="q1-window">
+                  <option value="7">7 ngày (tuần)</option>
+                  <option value="30" selected>30 ngày (tháng)</option>
+                </select>
+              </div>
+
+              <div class="control-group control-inline">
+                <label for="q1-bins">Bins (nếu là histogram)</label>
+                <input type="number" id="q1-bins" min="5" max="80" value="20" />
+              </div>
+
+              <div class="control-actions">
+                <button id="btn-q1-draw">Vẽ chart Câu 1</button>
+              </div>
+            </div>
+
+            <div class="analysis-layout">
+              <div class="analysis-chart-wrapper">
+                <canvas id="q1-chart"></canvas>
+              </div>
+              <div class="analysis-side">
+                <h3>Chi tiết dữ liệu (Câu 1)</h3>
+                <pre id="q1-result" class="result-box small">Thông tin response sẽ hiển thị ở đây...</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Câu 2 -->
+        <section class="card">
+          <header class="card-header">
+            <div>
+              <h2>Câu 2 – Trend (monthly)</h2>
+              <p class="card-subtitle">
+                Chọn biến và xem xu hướng sau khi resample dữ liệu theo tháng.
+              </p>
+            </div>
+          </header>
+          <div class="card-body">
+            <div class="analysis-controls">
+              <div class="control-group">
+                <label for="q2-variable">Biến</label>
+                <select id="q2-variable">
+                  <option value="temperature">Temperature</option>
+                  <option value="relative_humidity">Relative Humidity</option>
+                  <option value="precipitation">Precipitation</option>
+                </select>
+              </div>
+              <div class="control-actions">
+                <button id="btn-q2-draw">Vẽ trend Câu 2</button>
+              </div>
+            </div>
+
+            <div class="analysis-layout">
+              <div class="analysis-chart-wrapper">
+                <canvas id="q2-chart"></canvas>
+              </div>
+              <div class="analysis-side">
+                <h3>Chi tiết dữ liệu (Câu 2)</h3>
+                <pre id="q2-result" class="result-box small">Thông tin response sẽ hiển thị ở đây...</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Câu 3 -->
+        <section class="card">
+          <header class="card-header">
+            <div>
+              <h2>Câu 3 – Seasonal line (monthly)</h2>
+              <p class="card-subtitle">
+                Chọn biến và xem seasonal pattern theo tháng (1–12).
+              </p>
+            </div>
+          </header>
+          <div class="card-body">
+            <div class="analysis-controls">
+              <div class="control-group">
+                <label for="q3-variable">Biến</label>
+                <select id="q3-variable">
+                  <option value="temperature">Temperature</option>
+                  <option value="relative_humidity">Relative Humidity</option>
+                  <option value="precipitation">Precipitation</option>
+                </select>
+              </div>
+              <div class="control-actions">
+                <button id="btn-q3-draw">Vẽ seasonal Câu 3</button>
+              </div>
+            </div>
+
+            <div class="analysis-layout">
+              <div class="analysis-chart-wrapper">
+                <canvas id="q3-chart"></canvas>
+              </div>
+              <div class="analysis-side">
+                <h3>Chi tiết dữ liệu (Câu 3)</h3>
+                <pre id="q3-result" class="result-box small">Thông tin response sẽ hiển thị ở đây...</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/script.js"></script>
+</body>
+
+</html>

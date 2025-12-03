@@ -1,16 +1,11 @@
 import pandas as pd
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import seaborn as sns
-import os
-import time
+import numpy as np
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Literal, Optional, Dict, Any, List
 
-IMAGE_OUTPUT_DIR = './models/images'
-TIME_COLUMN = 'date'
-VARIABLES = ['temperature', 'relative_humidity', 'precipitation']
+TIME_COLUMN = "date"
+VARIABLES = ["temperature", "relative_humidity", "precipitation"]
 
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "weather_db"
@@ -20,97 +15,205 @@ client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
-if not os.path.exists(IMAGE_OUTPUT_DIR):
-    os.makedirs(IMAGE_OUTPUT_DIR)
-
-sns.set_style("darkgrid")
-plt.rcParams["figure.figsize"] = (12, 6)
-
 
 def load_data():
+    """Load toàn bộ dữ liệu từ MongoDB, chuẩn hóa index thời gian."""
     data = list(collection.find({}))
     if not data:
         return None
 
     df = pd.DataFrame(data)
-    df.drop(columns=['_id'], errors='ignore', inplace=True)
+    df.drop(columns=["_id"], errors="ignore", inplace=True)
 
     df[TIME_COLUMN] = pd.to_datetime(df[TIME_COLUMN])
     df.set_index(TIME_COLUMN, inplace=True)
     df.sort_index(inplace=True)
-    df['Month'] = df.index.month
+    df["Month"] = df.index.month
     return df
 
-"""
-======================
-PATTERN FUNCTIONS
-======================
-"""
 
-def task_1_visualize_patterns(df):
-    print("Task1 running...")
-
-    for var in VARIABLES:
-        for freq in ['W', 'M']:
-            data = df[var].resample(freq).mean().dropna()
-            if data.empty: continue
-
-            plt.figure()
-            plt.plot(data.index, data.values)
-            plt.savefig(f"{IMAGE_OUTPUT_DIR}/pattern1_line_{var}_{freq}.png")
-            plt.close()
-
-            plt.figure()
-            plt.scatter(data.index, data.values)
-            plt.savefig(f"{IMAGE_OUTPUT_DIR}/pattern1_scatter_{var}_{freq}.png")
-            plt.close()
-
-            plt.figure()
-            sns.histplot(data, kde=True)
-            plt.savefig(f"{IMAGE_OUTPUT_DIR}/pattern1_hist_{var}_{freq}.png")
-            plt.close()
+def _validate_variable(variable: str) -> str:
+    v = variable.lower()
+    if v not in VARIABLES:
+        raise ValueError(f"Variable '{variable}' không hợp lệ. Hỗ trợ: {', '.join(VARIABLES)}")
+    return v
 
 
-def task_2_trend_analysis(df):
-    print("Task2 running...")
-
-    for var in VARIABLES:
-        data = df[var].resample('M').mean().dropna()
-        roll = data.rolling(3).mean()
-
-        plt.figure()
-        plt.plot(data.index, data.values, linestyle='--')
-        plt.plot(roll.index, roll.values)
-        plt.savefig(f"{IMAGE_OUTPUT_DIR}/pattern2_trend_{var}.png")
-        plt.close()
+def _filter_time_window(df: pd.DataFrame, days: int) -> pd.DataFrame:
+    """Lọc dữ liệu trong N ngày gần nhất."""
+    if df.empty:
+        return df
+    end = df.index.max()
+    start = end - timedelta(days=days)
+    return df.loc[start:end]
 
 
-def task_3_seasonal_analysis(df):
-    print("Task3 running...")
+def get_time_series_data(
+    variable: str,
+    days: int = 30,
+) -> Dict[str, Any]:
+    """
+    Dữ liệu time series (theo thời gian thật) cho 1 biến, trong N ngày gần nhất.
+    FE có thể dùng cho:
+    - Line chart
+    - Scatter
+    - Histogram (tự tính hoặc dùng histogram API riêng)
+    """
+    var = _validate_variable(variable)
 
-    for var in VARIABLES:
-        seasonal = df.groupby(df.index.month)[var].mean()
-
-        plt.figure()
-        plt.plot(seasonal.index, seasonal.values, marker='o')
-        plt.savefig(f"{IMAGE_OUTPUT_DIR}/pattern3_seasonality_{var}.png")
-        plt.close()
-
-
-"""
-======================
-MAIN SERVICE
-======================
-"""
-
-def generate_charts():
     df = load_data()
     if df is None:
-        print("No Data.")
-        return
+        return None
 
-    task_1_visualize_patterns(df)
-    task_2_trend_analysis(df)
-    task_3_seasonal_analysis(df)
+    df_win = _filter_time_window(df, days)
+    if df_win.empty:
+        return None
 
-    print("Charts updated!")
+    series = df_win[var].dropna()
+
+    points = [
+        {"x": ts.isoformat(), "y": float(val)}
+        for ts, val in series.items()
+    ]
+
+    return {
+        "kind": "time_series",
+        "variable": var,
+        "window_days": days,
+        "x_label": "datetime",
+        "y_label": var,
+        "points": points,
+    }
+
+
+def get_histogram_data(
+    variable: str,
+    days: int = 30,
+    bins: int = 20,
+) -> Dict[str, Any]:
+    """Histogram của 1 biến trong N ngày gần nhất."""
+    var = _validate_variable(variable)
+
+    df = load_data()
+    if df is None:
+        return None
+
+    df_win = _filter_time_window(df, days)
+    if df_win.empty:
+        return None
+
+    series = df_win[var].dropna()
+    if series.empty:
+        return None
+
+    # Dùng numpy trực tiếp thay vì pd.np (đã bị remove trong pandas mới)
+    counts, bin_edges = np.histogram(series.values, bins=bins)
+
+    # Trả về mid-point mỗi bin cho FE vẽ nếu cần
+    mids: List[float] = []
+    for i in range(len(bin_edges) - 1):
+        mids.append(float((bin_edges[i] + bin_edges[i + 1]) / 2.0))
+
+    return {
+        "kind": "histogram",
+        "variable": var,
+        "window_days": days,
+        "bins": bins,
+        "x_label": var,
+        "y_label": "count",
+        "bin_edges": [float(b) for b in bin_edges],
+        "counts": [int(c) for c in counts],
+        "bin_mids": mids,
+    }
+
+
+def get_trend_data(variable: str) -> Dict[str, Any]:
+    """
+    Trend: dữ liệu sau khi resample về tháng (mean theo tháng) theo thời gian.
+    """
+    var = _validate_variable(variable)
+
+    df = load_data()
+    if df is None:
+        return None
+
+    data = df[var].resample("M").mean().dropna()
+    if data.empty:
+        return None
+
+    points = [
+        {"x": ts.strftime("%Y-%m"), "y": float(val)}
+        for ts, val in data.items()
+    ]
+
+    return {
+        "kind": "trend_monthly",
+        "variable": var,
+        "x_label": "month (YYYY-MM)",
+        "y_label": var,
+        "points": points,
+    }
+
+
+def get_seasonality_data(variable: str) -> Dict[str, Any]:
+    """
+    Seasonal line: dữ liệu re-sampling về tháng, group theo Month (1-12).
+    """
+    var = _validate_variable(variable)
+
+    df = load_data()
+    if df is None:
+        return None
+
+    # Dùng chính series resample('M') rồi group theo month-of-year
+    monthly = df[var].resample("M").mean().dropna()
+    if monthly.empty:
+        return None
+
+    seasonal = monthly.groupby(monthly.index.month).mean()
+
+    points = [
+        {"x": int(month), "y": float(val)}
+        for month, val in seasonal.items()
+    ]
+
+    return {
+        "kind": "seasonality_monthly",
+        "variable": var,
+        "x_label": "Month (1-12)",
+        "y_label": var,
+        "points": points,
+    }
+
+
+def get_chart_data(
+    variable: str,
+    chart_kind: Literal[
+        "time_series",
+        "histogram",
+        "trend_monthly",
+        "seasonality_monthly",
+    ] = "time_series",
+    days: int = 30,
+    bins: int = 20,
+) -> Dict[str, Any]:
+    """
+    Hàm tổng cho routes gọi, hỗ trợ nhiều loại chart:
+    - chart_kind = 'time_series'        -> time series trong N ngày (dùng cho line & scatter)
+    - chart_kind = 'histogram'          -> histogram trong N ngày
+    - chart_kind = 'trend_monthly'      -> trend theo tháng (resample M)
+    - chart_kind = 'seasonality_monthly'-> seasonal line theo Month (1-12)
+    """
+    if chart_kind == "time_series":
+        return get_time_series_data(variable, days)
+    if chart_kind == "histogram":
+        return get_histogram_data(variable, days, bins)
+    if chart_kind == "trend_monthly":
+        return get_trend_data(variable)
+    if chart_kind == "seasonality_monthly":
+        return get_seasonality_data(variable)
+
+    raise ValueError(
+        "chart_kind không hợp lệ. Hỗ trợ: "
+        "'time_series', 'histogram', 'trend_monthly', 'seasonality_monthly'"
+    )

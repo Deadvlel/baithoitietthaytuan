@@ -1,6 +1,7 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
@@ -14,9 +15,11 @@ from routes.cluster_routes import router as cluster_router
 
 # Import controllers
 import controller.predict_controller as predict_controller
-from controller.data_analysis_controller import generate_charts
 
 app = FastAPI()
+
+# Mount thư mục static cho frontend (CSS/JS)
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 # Include routes
 app.include_router(predict_router, prefix="/predict", tags=["Predict"])
@@ -25,8 +28,16 @@ app.include_router(cluster_router, prefix="/cluster", tags=["Weather AI"])
 
 @app.get("/")
 def root():
-    # Redirect sang trang Swagger UI
-    return RedirectResponse(url="/docs")
+    # Redirect sang trang giao diện frontend
+    return RedirectResponse(url="/ui")
+
+
+@app.get("/ui")
+def serve_frontend():
+    """
+    Trả về file HTML frontend chính.
+    """
+    return FileResponse("frontend/index.html")
 
 # Predict
 # Background job chạy mỗi 5 phút
@@ -43,18 +54,6 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(scheduled_job, "interval", minutes=5)
 scheduler.start()
 
-# Data Analysis
-def background():
-    while True:
-        generate_charts()
-        time.sleep(300)
-
-@app.on_event("startup")
-def start_bg_job():
-    thread = Thread(target=background, daemon=True)
-    thread.start()
-
-# Clus
 # Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,
