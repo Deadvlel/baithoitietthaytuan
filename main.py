@@ -11,6 +11,7 @@ import time
 from routes.predict_routes import router as predict_router
 from routes.data_analysis_routes import router as data_analysis_router
 from routes.cluster_routes import router as cluster_router
+from routes.ingestion_router import router as ingestion_router
 
 import controller.predict_controller as predict_controller
 from controller.clustering_services_controller import update_weather_centroids
@@ -39,11 +40,12 @@ def cluster_job():
         print(f"[{datetime.now()}] -> Lỗi update cluster: {e}")
 
 def analysis_job():
-    """Job tính toán lại Data Analysis, ví dụ: Correlation Matrix."""
-    print(f"[{datetime.now()}] Đang chạy job cập nhật Data Analysis (Correlation Matrix)...")
+    """Job tính toán lại Data Analysis, bao gồm Correlation Matrix và các Chart toàn bộ dữ liệu."""
+    print(f"[{datetime.now()}] Đang chạy job cập nhật Data Analysis (Correlation Matrix & Charts)...")
     try:
-        # Gọi hàm controller mới
         data_analysis_controller.update_correlation_matrix_cache() 
+        data_analysis_controller.update_chart_cache() 
+        
         print(f"[{datetime.now()}] -> Cập nhật Data Analysis hoàn tất.")
     except Exception as e:
         print(f"[{datetime.now()}] -> Lỗi update Data Analysis: {e}")
@@ -55,11 +57,11 @@ async def lifespan(app: FastAPI):
     
     scheduled_job()
     cluster_job()
+    analysis_job() 
     
     scheduler = BackgroundScheduler()
     
     scheduler.add_job(scheduled_job, "interval", minutes=5, id='predict_job')
-
     scheduler.add_job(analysis_job, "interval", minutes=5, id='analysis_job')
 
     scheduler.add_job(
@@ -71,7 +73,7 @@ async def lifespan(app: FastAPI):
     ) 
     
     scheduler.start()
-    print("--- Scheduler đã bắt đầu: Dự đoán (5 phút/lần), Cluster (2:00 sáng/ngày) ---")
+    print("--- Scheduler đã bắt đầu: Dự đoán/Analysis (5 phút/lần), Cluster (2:00 sáng/ngày) ---")
     
     yield 
     
@@ -88,6 +90,7 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 app.include_router(predict_router, prefix="/predict", tags=["Predict"])
 app.include_router(data_analysis_router, prefix="/analysis", tags=["Analysis"])
 app.include_router(cluster_router, prefix="/cluster", tags=["Weather AI"])
+app.include_router(ingestion_router, prefix="/ingestion", tags=["Ingestion"])
 
 
 app.add_middleware(

@@ -1,21 +1,22 @@
 from fastapi import APIRouter
-
-from ingestion.extract_service import ingest_latest_weather
-
+from controller.ingestion_controller import fetch_and_store_weather_data, trigger_all_post_ingestion_jobs
 
 router = APIRouter()
 
-
 @router.post("/refresh")
-def refresh_weather_data():
+def api_refresh_data():
     """
-    Gọi lại quá trình ingestion từ Open-Meteo và ghi vào MongoDB.
-    Dùng cho nút \"Lấy dữ liệu mới nhất\" trên frontend.
+    API để nạp (ingest) dữ liệu thời tiết mới nhất ngay lập tức 
+    và kích hoạt cập nhật cache Data Analysis.
     """
     try:
-        stats = ingest_latest_weather()
-        return {"status": "success", "data": stats}
+        # 1. Nạp dữ liệu mới
+        ingestion_result = fetch_and_store_weather_data()
+        
+        # 2. Cập nhật cache Data Analysis
+        trigger_all_post_ingestion_jobs()
+
+        return {"status": "success", "data": ingestion_result}
+    
     except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-
+        return {"status": "error", "message": f"Lỗi nạp dữ liệu: {str(e)}"}

@@ -15,6 +15,11 @@ client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
+# ------------------ KHU VỰC CACHE MỚI -------------------
+CHART_CACHE: Dict[str, Any] = {}
+CORRELATION_MATRIX_CACHE: Optional[Dict[str, Any]] = None
+# --------------------------------------------------------
+
 
 def load_data():
     """Load toàn bộ dữ liệu từ MongoDB, chuẩn hóa index thời gian."""
@@ -163,7 +168,7 @@ def get_trend_data(variable: str) -> Dict[str, Any]:
     if df is None:
         return None
 
-    data = df[var].resample("M").mean().dropna()
+    data = df[var].resample("ME").mean().dropna()
     if data.empty:
         return None
 
@@ -192,7 +197,7 @@ def get_seasonality_data(variable: str) -> Dict[str, Any]:
         return None
 
     # Dùng chính series resample('M') rồi group theo month-of-year
-    monthly = df[var].resample("M").mean().dropna()
+    monthly = df[var].resample("ME").mean().dropna()
     if monthly.empty:
         return None
 
@@ -224,7 +229,7 @@ def get_seasonal_comparison_data(variable: str) -> Dict[str, Any]:
         return None
 
     # 1. Re-sample về monthly mean
-    monthly = df[var].resample("M").mean().dropna()
+    monthly = df[var].resample("ME").mean().dropna()
     if monthly.empty:
         return None
 
@@ -244,7 +249,6 @@ def get_seasonal_comparison_data(variable: str) -> Dict[str, Any]:
     years = sorted(pivoted_df.columns.tolist()) 
 
     # Chỉ so sánh những năm có đủ dữ liệu từ 2024 trở đi.
-    # Nếu muốn so sánh tất cả các năm, chỉ cần bỏ qua bước này.
     # Ở đây, ta sẽ chỉ lấy các năm >= 2024 theo yêu cầu ban đầu.
     years = [y for y in years if y >= 2024]
     
@@ -276,40 +280,10 @@ def get_seasonal_comparison_data(variable: str) -> Dict[str, Any]:
     }
 
 
-def get_chart_data(
-    variable: str,
-    chart_kind: Literal[
-        "time_series",
-        "histogram",
-        "trend_monthly",
-        "seasonality_monthly",
-        "seasonal_yearly_comparison", # Đã thêm loại chart mới
-    ] = "time_series",
-    days: Optional[int] = 30, # Cập nhật signature
-    bins: int = 20,
-    resample_freq: Optional[str] = None, # THAM SỐ MỚI
-) -> Dict[str, Any]:
+# ------------------ HÀM MỚI VÀ SỬA ĐỔI CHO CACHING ------------------
 
-    if chart_kind == "time_series":
-        return get_time_series_data(variable, days, resample_freq) # Truyền tham số mới
-    if chart_kind == "histogram":
-        return get_histogram_data(variable, days, bins)
-    if chart_kind == "trend_monthly":
-        return get_trend_data(variable)
-    if chart_kind == "seasonality_monthly":
-        return get_seasonality_data(variable)
-    if chart_kind == "seasonal_yearly_comparison": # Routing mới
-        return get_seasonal_comparison_data(variable)
-
-    raise ValueError(
-        "chart_kind không hợp lệ. Hỗ trợ: "
-        "'time_series', 'histogram', 'trend_monthly', 'seasonality_monthly', 'seasonal_yearly_comparison'"
-    )
-def get_correlation_matrix():
-    """
-    Tính và trả về ma trận correlation của tất cả các biến số
-    (loại bỏ cột 'date' và 'Unnamed: 0' nếu có)
-    """
+def _calculate_correlation_matrix() -> Optional[Dict[str, Any]]:
+    """Logic tính toán correlation matrix gốc (đã được tách ra)."""
     df = load_data()
     if df is None or df.empty:
         return None
@@ -340,3 +314,81 @@ def get_correlation_matrix():
             for var2 in corr_matrix.columns
         ]
     }
+
+def update_correlation_matrix_cache():
+    """Hàm cập nhật cache cho Correlation Matrix."""
+    global CORRELATION_MATRIX_CACHE
+    CORRELATION_MATRIX_CACHE = _calculate_correlation_matrix()
+
+def update_chart_cache():
+    """Cập nhật cache cho các loại chart tính trên toàn bộ dữ liệu (Trend, Seasonality, Comparison)."""
+    global CHART_CACHE
+    CHART_CACHE = {} # Xóa cache cũ
+
+    # Tận dụng các hàm tính toán gốc
+    for var in VARIABLES:
+        # 1. Trend Monthly
+        trend_data = get_trend_data(var)
+        if trend_data:
+            CHART_CACHE[f"trend_monthly_{var}"] = trend_data
+
+        # 2. Seasonality Monthly
+        seasonality_data = get_seasonality_data(var)
+        if seasonality_data:
+            CHART_CACHE[f"seasonality_monthly_{var}"] = seasonality_data
+
+        # 3. Seasonal Yearly Comparison
+        comparison_data = get_seasonal_comparison_data(var)
+        if comparison_data:
+            CHART_CACHE[f"seasonal_yearly_comparison_{var}"] = comparison_data
+
+def get_correlation_matrix():
+    """
+    Trả về ma trận correlation. Ưu tiên đọc từ cache.
+    """
+    if CORRELATION_MATRIX_CACHE:
+        return CORRELATION_MATRIX_CACHE
+    
+    # Nếu cache rỗng (lần chạy đầu), tính toán trực tiếp
+    return _calculate_correlation_matrix()
+
+# ---------------------------------------------------------------------
+# SỬA ĐỔI HÀM get_chart_data ĐỂ DÙNG CACHE
+def get_chart_data(
+    variable: str,
+    chart_kind: Literal[
+        "time_series",
+        "histogram",
+        "trend_monthly",
+        "seasonality_monthly",
+        "seasonal_yearly_comparison", 
+    ] = "time_series",
+    days: Optional[int] = 30, 
+    bins: int = 20,
+    resample_freq: Optional[str] = None, 
+) -> Dict[str, Any]:
+
+    # 1. KIỂM TRA CACHE cho các chart tính trên toàn bộ dữ liệu
+    if chart_kind in ["trend_monthly", "seasonality_monthly", "seasonal_yearly_comparison"]:
+        cache_key = f"{chart_kind}_{variable}"
+        if cache_key in CHART_CACHE:
+            return CHART_CACHE[cache_key]
+
+    # 2. TÍNH TOÁN theo yêu cầu (Time Series, Histogram, và trường hợp cache miss)
+    if chart_kind == "time_series":
+        return get_time_series_data(variable, days, resample_freq) 
+    if chart_kind == "histogram":
+        return get_histogram_data(variable, days, bins)
+    
+    # Fallback/Tính toán nếu cache miss
+    if chart_kind == "trend_monthly":
+        return get_trend_data(variable)
+    if chart_kind == "seasonality_monthly":
+        return get_seasonality_data(variable)
+    if chart_kind == "seasonal_yearly_comparison": 
+        return get_seasonal_comparison_data(variable)
+
+    raise ValueError(
+        "chart_kind không hợp lệ. Hỗ trợ: "
+        "'time_series', 'histogram', 'trend_monthly', 'seasonality_monthly', 'seasonal_yearly_comparison'"
+    )
