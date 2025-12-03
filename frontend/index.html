@@ -313,7 +313,7 @@
 
       <section id="tab-analysis" class="tab-panel active">
         
-<section class="card" style="margin-bottom: 1.75rem;">
+        <section class="card" style="margin-bottom: 1.75rem;">
           <header class="card-header">
             <div>
               <h2><i class="fa-solid fa-cloud-arrow-down"></i> Dữ liệu thời tiết mới nhất</h2>
@@ -364,10 +364,21 @@
               </div>
 
               <div class="control-group">
-                <label for="q1-window">Thời gian</label>
+                <label for="q1-window">Phạm vi (Range)</label>
                 <select id="q1-window">
                   <option value="7">7 ngày qua</option>
                   <option value="30" selected>30 ngày qua</option>
+                  <option value="all">Tất cả dữ liệu</option>
+                </select>
+              </div>
+              
+              <div class="control-group">
+                <label for="q1-resample-freq">Tần suất gộp (Aggregation)</label>
+                <select id="q1-resample-freq">
+                  <option value="H" selected>Theo giờ (Hourly - Không gộp)</option>
+                  <option value="D">Theo ngày (Daily Mean)</option>
+                  <option value="W">Theo tuần (Weekly Mean)</option>
+                  <option value="M">Theo tháng (Monthly Mean)</option>
                 </select>
               </div>
 

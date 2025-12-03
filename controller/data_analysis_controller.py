@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pymongo import MongoClient
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Dict, Any, List
+from typing import Literal, Optional, Dict, Any, List # Import Optional
 
 TIME_COLUMN = "date"
 VARIABLES = ["temperature", "relative_humidity", "precipitation"]
@@ -50,14 +50,12 @@ def _filter_time_window(df: pd.DataFrame, days: int) -> pd.DataFrame:
 
 def get_time_series_data(
     variable: str,
-    days: int = 30,
+    days: Optional[int] = 30, # Cho phép days là None (tức là 'all')
+    resample_freq: Optional[str] = None, # THAM SỐ MỚI: Tần suất gộp
 ) -> Dict[str, Any]:
     """
-    Dữ liệu time series (theo thời gian thật) cho 1 biến, trong N ngày gần nhất.
-    FE có thể dùng cho:
-    - Line chart
-    - Scatter
-    - Histogram (tự tính hoặc dùng histogram API riêng)
+    Dữ liệu time series (theo thời gian thật) cho 1 biến, trong N ngày gần nhất,
+    có thể được gộp (resample) theo tần suất: H, D, W, M.
     """
     var = _validate_variable(variable)
 
@@ -65,14 +63,38 @@ def get_time_series_data(
     if df is None:
         return None
 
-    df_win = _filter_time_window(df, days)
+    df_win = df
+    if days is not None: # Nếu days là None (tức là 'all'), ta dùng toàn bộ df
+        df_win = _filter_time_window(df, days)
+    
     if df_win.empty:
         return None
 
     series = df_win[var].dropna()
+    
+    # LOGIC RESAMPLING (Gộp theo tần suất)
+    freq = resample_freq.upper() if resample_freq else "H"
+    if freq != "H":
+        # Thực hiện resampling theo tần suất (D, W, M,...) và tính trung bình (mean)
+        series = series.resample(freq).mean().dropna()
+
+    # Định dạng trục X và nhãn trục X cho phù hợp với tần suất gộp
+    x_format = "%Y-%m-%d %H:%M:%S"
+    x_label = f"{var} - Hourly"
+    
+    if freq == "D":
+        x_format = "%Y-%m-%d"
+        x_label = f"{var} - Daily Mean"
+    elif freq == "W":
+        x_format = "%Y-%m-%d" # Ngày đầu tiên của tuần
+        x_label = f"{var} - Weekly Mean"
+    elif freq == "M":
+        x_format = "%Y-%m"
+        x_label = f"{var} - Monthly Mean"
+    # Nếu là "H", dùng mặc định
 
     points = [
-        {"x": ts.isoformat(), "y": float(val)}
+        {"x": ts.strftime(x_format), "y": float(val)}
         for ts, val in series.items()
     ]
 
@@ -80,7 +102,8 @@ def get_time_series_data(
         "kind": "time_series",
         "variable": var,
         "window_days": days,
-        "x_label": "datetime",
+        "resample_freq": freq, # Trả về tần suất gộp
+        "x_label": x_label, # Nhãn trục X đã cập nhật
         "y_label": var,
         "points": points,
     }
@@ -88,7 +111,7 @@ def get_time_series_data(
 
 def get_histogram_data(
     variable: str,
-    days: int = 30,
+    days: Optional[int] = 30, # Cho phép days là None (tức là 'all')
     bins: int = 20,
 ) -> Dict[str, Any]:
     """Histogram của 1 biến trong N ngày gần nhất."""
@@ -98,7 +121,10 @@ def get_histogram_data(
     if df is None:
         return None
 
-    df_win = _filter_time_window(df, days)
+    df_win = df
+    if days is not None: # Nếu days là None (tức là 'all'), ta dùng toàn bộ df
+        df_win = _filter_time_window(df, days)
+        
     if df_win.empty:
         return None
 
@@ -259,12 +285,13 @@ def get_chart_data(
         "seasonality_monthly",
         "seasonal_yearly_comparison", # Đã thêm loại chart mới
     ] = "time_series",
-    days: int = 30,
+    days: Optional[int] = 30, # Cập nhật signature
     bins: int = 20,
+    resample_freq: Optional[str] = None, # THAM SỐ MỚI
 ) -> Dict[str, Any]:
 
     if chart_kind == "time_series":
-        return get_time_series_data(variable, days)
+        return get_time_series_data(variable, days, resample_freq) # Truyền tham số mới
     if chart_kind == "histogram":
         return get_histogram_data(variable, days, bins)
     if chart_kind == "trend_monthly":

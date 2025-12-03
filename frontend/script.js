@@ -215,6 +215,20 @@ function renderLineLikeChart(canvasId, data, { label, isScatter = false, fillAre
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            scales: {
+                x: { 
+                    title: { 
+                        display: true, 
+                        text: data.x_label || 'datetime' // SỬ DỤNG data.x_label
+                    } 
+                },
+                y: { 
+                    title: { 
+                        display: true, 
+                        text: data.y_label || 'Value' // SỬ DỤNG data.y_label
+                    } 
+                },
+            },
             plugins: { zoom: commonZoomOptions },
         },
     });
@@ -327,13 +341,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-q1-draw")?.addEventListener("click", async () => {
         const variable = document.getElementById("q1-variable")?.value;
         const chartType = document.getElementById("q1-chart-type")?.value;
+        const rangeDays = document.getElementById("q1-window")?.value; // Lấy giá trị phạm vi
+        const resampleFreq = document.getElementById("q1-resample-freq")?.value; // LẤY TẦN SUẤT GỘP
 
         setResult("q1-result", "Đang tải dữ liệu...");
         const params = {
             variable,
             chart_kind: chartType === "histogram" ? "histogram" : "time_series",
-            days: document.getElementById("q1-window")?.value,
+            days: rangeDays, // Gửi phạm vi
             bins: document.getElementById("q1-bins")?.value,
+            resample_freq: resampleFreq, // GỬI TẦN SUẤT GỘP MỚI
         };
         const json = await fetchChart(params);
         if (json.status !== "success") return setResult("q1-result", json);
@@ -345,14 +362,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.kind === "histogram") {
             q1Chart = renderHistogramChart("q1-chart", data, `${data.variable} - histogram`);
         } else {
+            // Nhãn trục Y sẽ được lấy từ data.y_label bên trong renderLineLikeChart
             q1Chart = renderLineLikeChart("q1-chart", data, {
-                label: `${data.variable} - timeseries`,
+                label: `${data.x_label}`, // Dùng x_label làm label dataset tạm, y_label sẽ dùng từ data.y_label
                 isScatter: chartType === "scatter",
                 fillArea: chartType !== "scatter",
             });
         }
     });
-
     // --- Q2
     document.getElementById("btn-q2-draw")?.addEventListener("click", async () => {
         setResult("q2-result", "Đang tải dữ liệu...");
