@@ -2,6 +2,15 @@
 // Mặc định: cùng host với FastAPI (vd: http://localhost:8000)
 const BASE_URL = "";
 
+// Đăng ký plugin zoom cho Chart.js (chartjs-plugin-zoom đã được load trong index.html)
+try {
+  if (typeof Chart !== "undefined" && typeof ChartZoom !== "undefined") {
+    Chart.register(ChartZoom);
+  }
+} catch (e) {
+  console.warn("Không thể đăng ký ChartZoom plugin:", e);
+}
+
 function setResult(id, data) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -107,7 +116,22 @@ function renderSeasonalComparisonChart(canvasId, data) {
                 legend: {
                     display: true,
                     position: 'top',
-                }
+                },
+                zoom: {
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                        },
+                        pinch: {
+                            enabled: true,
+                        },
+                        mode: 'xy',
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy',
+                    },
+                },
             }
         },
     });
@@ -171,6 +195,18 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   });
 
+  // Nút lấy dữ liệu thời tiết mới nhất (ingestion)
+  const btnRefreshIngestion = document.getElementById("btn-refresh-ingestion");
+  btnRefreshIngestion?.addEventListener("click", () => {
+    callApi(
+      "/ingestion/refresh",
+      {
+        method: "POST",
+      },
+      "ingestion-result"
+    );
+  });
+
   // ====== PHÂN TÍCH DỮ LIỆU (3 câu) ======
 
   let q1ChartInstance = null;
@@ -191,7 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const labels = data.bin_mids || data.bin_edges;
     const counts = data.counts;
 
-    return new Chart(ctx, {
+    return new Chart(ctx, {
       type: "bar",
       data: {
         labels,
@@ -204,23 +240,37 @@ document.addEventListener("DOMContentLoaded", () => {
           },
         ],
       },
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: data.x_label || "X",
-            },
-          },
-          y: {
-            title: {
-              display: true,
-              text: data.y_label || "Y",
-            },
-          },
-        },
-      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: data.x_label || "X",
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: data.y_label || "Y",
+            },
+          },
+        },
+        plugins: {
+          zoom: {
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: "xy",
+            },
+            pan: {
+              enabled: true,
+              mode: "xy",
+            },
+          },
+        },
+      },
     });
   }
 
@@ -238,7 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fillArea = true,
     } = options;
 
-    return new Chart(ctx, {
+    return new Chart(ctx, {
       type: "line",
       data: {
         labels,
@@ -255,23 +305,37 @@ document.addEventListener("DOMContentLoaded", () => {
           },
         ],
       },
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: data.x_label || "X",
-            },
-          },
-          y: {
-            title: {
-              display: true,
-              text: data.y_label || "Y",
-            },
-          },
-        },
-      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: data.x_label || "X",
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: data.y_label || "Y",
+            },
+          },
+        },
+        plugins: {
+          zoom: {
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: "xy",
+            },
+            pan: {
+              enabled: true,
+              mode: "xy",
+            },
+          },
+        },
+      },
     });
   }
 
@@ -429,4 +493,26 @@ document.addEventListener("DOMContentLoaded", () => {
       setResult("q3-result", `Lỗi khi gọi API chart-data (So sánh các năm): ${err}`);
     }
   });
+
+  // Nút reset zoom cho từng chart
+  const btnQ1Reset = document.getElementById("btn-q1-reset");
+  btnQ1Reset?.addEventListener("click", () => {
+    if (q1ChartInstance && typeof q1ChartInstance.resetZoom === "function") {
+      q1ChartInstance.resetZoom();
+    }
+  });
+
+  const btnQ2Reset = document.getElementById("btn-q2-reset");
+  btnQ2Reset?.addEventListener("click", () => {
+    if (q2ChartInstance && typeof q2ChartInstance.resetZoom === "function") {
+      q2ChartInstance.resetZoom();
+    }
+  });
+
+  const btnQ3Reset = document.getElementById("btn-q3-reset");
+  btnQ3Reset?.addEventListener("click", () => {
+    if (q3ChartInstance && typeof q3ChartInstance.resetZoom === "function") {
+      q3ChartInstance.resetZoom();
+    }
+  });
 });

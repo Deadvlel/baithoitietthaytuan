@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <title>Weather AI Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,7 +27,11 @@
       --radius: 12px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: 'Inter', sans-serif;
@@ -50,6 +54,7 @@
       z-index: 100;
       border-bottom: 1px solid var(--border-color);
     }
+
     .app-header h1 {
       font-size: 1.5rem;
       font-weight: 700;
@@ -58,11 +63,13 @@
       align-items: center;
       gap: 10px;
     }
+
     .app-header p {
       font-size: 0.875rem;
       color: var(--text-muted);
       margin-top: 4px;
     }
+
     .badge {
       display: inline-block;
       width: 10px;
@@ -71,6 +78,7 @@
       background-color: #10b981;
       box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
     }
+
     .app-header-right {
       display: flex;
       align-items: center;
@@ -98,6 +106,7 @@
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 1px;
     }
+
     .tab-button {
       background: none;
       border: none;
@@ -109,20 +118,36 @@
       border-bottom: 2px solid transparent;
       transition: all 0.2s;
     }
-    .tab-button:hover { color: var(--primary-color); }
+
+    .tab-button:hover {
+      color: var(--primary-color);
+    }
+
     .tab-button.active {
       color: var(--primary-color);
       border-bottom-color: var(--primary-color);
       font-weight: 600;
     }
+
     .tab-panel {
       display: none;
       animation: fadeIn 0.3s ease-in-out;
     }
-    .tab-panel.active { display: block; }
+
+    .tab-panel.active {
+      display: block;
+    }
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* --- Grid & Cards --- */
@@ -131,6 +156,7 @@
       grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
       gap: 1.5rem;
     }
+
     .card {
       background: var(--card-bg);
       border-radius: var(--radius);
@@ -140,22 +166,29 @@
       display: flex;
       flex-direction: column;
     }
+
     .card-header {
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid var(--border-color);
       background-color: #f9fafb;
     }
+
     .card-header h2 {
       font-size: 1.125rem;
       font-weight: 600;
       color: var(--text-main);
     }
+
     .card-subtitle {
       font-size: 0.85rem;
       color: var(--text-muted);
       margin-top: 4px;
     }
-    .card-body { padding: 1.5rem; flex: 1; }
+
+    .card-body {
+      padding: 1.5rem;
+      flex: 1;
+    }
 
     /* --- Forms & Inputs --- */
     label {
@@ -165,7 +198,10 @@
       margin-bottom: 0.5rem;
       color: var(--text-main);
     }
-    input[type="date"], input[type="number"], select {
+
+    input[type="date"],
+    input[type="number"],
+    select {
       width: 100%;
       padding: 0.625rem 0.875rem;
       border: 1px solid var(--border-color);
@@ -175,18 +211,25 @@
       transition: border-color 0.2s, box-shadow 0.2s;
       background-color: #fff;
     }
-    input:focus, select:focus {
+
+    input:focus,
+    select:focus {
       outline: none;
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
     }
+
     .field-row {
       display: flex;
       gap: 1rem;
       align-items: flex-end;
       margin-bottom: 1rem;
     }
-    .field-row input { flex: 1; }
+
+    .field-row input {
+      flex: 1;
+    }
+
     .field-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -207,19 +250,27 @@
       cursor: pointer;
       transition: background-color 0.2s;
     }
+
     button[id^="btn-"] {
       background-color: var(--primary-color);
       color: white;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
-    button[id^="btn-"]:hover { background-color: var(--primary-hover); }
+
+    button[id^="btn-"]:hover {
+      background-color: var(--primary-hover);
+    }
+
     #btn-q3-compare {
-        background-color: var(--bg-color);
-        color: var(--text-main);
-        border: 1px solid var(--border-color);
-        margin-left: 0.5rem;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      margin-left: 0.5rem;
     }
-    #btn-q3-compare:hover { background-color: #e5e7eb; }
+
+    #btn-q3-compare:hover {
+      background-color: #e5e7eb;
+    }
 
     /* --- Results & Controls --- */
     .result-box {
@@ -235,8 +286,12 @@
       overflow-y: auto;
       border: 1px solid #334155;
     }
-    .result-box.small { font-size: 0.75rem; max-height: 400px; }
-    
+
+    .result-box.small {
+      font-size: 0.75rem;
+      max-height: 400px;
+    }
+
     .analysis-controls {
       display: flex;
       flex-wrap: wrap;
@@ -248,17 +303,20 @@
       align-items: flex-end;
       border: 1px solid var(--border-color);
     }
+
     .control-group {
       display: flex;
       flex-direction: column;
       min-width: 150px;
     }
+
     .analysis-layout {
       display: grid;
       grid-template-columns: 2fr 1fr;
       gap: 1.5rem;
       align-items: start;
     }
+
     .analysis-chart-wrapper {
       background: white;
       padding: 1rem;
@@ -267,6 +325,7 @@
       height: 400px;
       position: relative;
     }
+
     .analysis-side h3 {
       font-size: 0.95rem;
       font-weight: 600;
@@ -275,11 +334,31 @@
     }
 
     @media (max-width: 768px) {
-      .app-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-      .grid-2, .field-grid, .analysis-layout { grid-template-columns: 1fr; }
-      .analysis-controls { flex-direction: column; align-items: stretch; }
-      .control-group { width: 100%; }
-      .nav-tabs { overflow-x: auto; white-space: nowrap; }
+      .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .grid-2,
+      .field-grid,
+      .analysis-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .analysis-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .control-group {
+        width: 100%;
+      }
+
+      .nav-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+      }
     }
   </style>
 </head>
@@ -300,18 +379,42 @@
     <main class="app-main">
       <nav class="nav-tabs" aria-label="Weather sections">
         <button class="tab-button active" data-tab="tab-analysis">
-            <i class="fa-solid fa-chart-line"></i> Phân tích dữ liệu
+          <i class="fa-solid fa-chart-line"></i> Phân tích dữ liệu
         </button>
         <button class="tab-button" data-tab="tab-forecast">
-            <i class="fa-solid fa-calendar-days"></i> Dự báo
+          <i class="fa-solid fa-calendar-days"></i> Dự báo
         </button>
         <button class="tab-button" data-tab="tab-cluster">
-            <i class="fa-solid fa-diagram-project"></i> Clustering
+          <i class="fa-solid fa-diagram-project"></i> Clustering
         </button>
       </nav>
 
       <section id="tab-analysis" class="tab-panel active">
-        
+
+        <!-- Card: Lấy dữ liệu thời tiết mới nhất -->
+        <section class="card" style="margin-bottom: 1.75rem;">
+          <header class="card-header">
+            <div>
+              <h2><i class="fa-solid fa-cloud-arrow-down"></i> Dữ liệu thời tiết mới nhất</h2>
+              <p class="card-subtitle">
+                Gọi Open-Meteo để tải lại dữ liệu mới nhất vào database, dùng cho toàn bộ phân tích bên dưới.
+              </p>
+            </div>
+          </header>
+          <div class="card-body">
+            <div style="display:flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem;">
+              <button id="btn-refresh-ingestion">
+                <i class="fa-solid fa-cloud-arrow-down"></i> &nbsp;Lấy dữ liệu thời tiết mới nhất
+              </button>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">
+                Thao tác này có thể mất vài giây do gọi API bên ngoài.
+              </span>
+            </div>
+            <label>Kết quả cập nhật:</label>
+            <pre id="ingestion-result" class="result-box small">Chưa chạy cập nhật dữ liệu.</pre>
+          </div>
+        </section>
+
         <section class="card" style="margin-bottom: 2rem;">
           <header class="card-header">
             <div>
@@ -353,12 +456,17 @@
               </div>
 
               <div class="control-group" style="justify-content: flex-end;">
-                  <button id="btn-q1-draw">Vẽ biểu đồ</button>
+                <button id="btn-q1-draw">Vẽ biểu đồ</button>
               </div>
             </div>
 
             <div class="analysis-layout">
               <div class="analysis-chart-wrapper">
+                <div style="display:flex; justify-content:flex-end; margin-bottom:4px; gap:6px;">
+                  <button id="btn-q1-reset" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">
+                    Reset zoom
+                  </button>
+                </div>
                 <canvas id="q1-chart"></canvas>
               </div>
               <div class="analysis-side">
@@ -370,70 +478,80 @@
         </section>
 
         <div class="grid-2">
-            <section class="card">
+          <section class="card">
             <header class="card-header">
-                <div>
+              <div>
                 <h2><i class="fa-solid fa-arrow-trend-up"></i> Xu hướng tháng (Trend)</h2>
                 <p class="card-subtitle">Resample dữ liệu theo tháng để xem xu hướng chung.</p>
-                </div>
+              </div>
             </header>
             <div class="card-body">
-                <div class="analysis-controls" style="flex-wrap: nowrap;">
+              <div class="analysis-controls" style="flex-wrap: nowrap;">
                 <div class="control-group" style="flex:1;">
-                    <label for="q2-variable">Biến số</label>
-                    <select id="q2-variable">
+                  <label for="q2-variable">Biến số</label>
+                  <select id="q2-variable">
                     <option value="temperature">Temperature</option>
                     <option value="relative_humidity">Relative Humidity</option>
                     <option value="precipitation">Precipitation</option>
-                    </select>
+                  </select>
                 </div>
                 <div class="control-group" style="justify-content: flex-end;">
-                    <button id="btn-q2-draw">Xem Trend</button>
+                  <button id="btn-q2-draw">Xem Trend</button>
                 </div>
-                </div>
+              </div>
 
-                <div class="analysis-chart-wrapper" style="height: 300px;">
-                    <canvas id="q2-chart"></canvas>
+              <div class="analysis-chart-wrapper" style="height: 300px;">
+                <div style="display:flex; justify-content:flex-end; margin-bottom:4px; gap:6px;">
+                  <button id="btn-q2-reset" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">
+                    Reset zoom
+                  </button>
                 </div>
-                <div style="margin-top: 1rem;">
-                    <label>Log:</label>
-                    <pre id="q2-result" class="result-box small" style="max-height: 150px;">...</pre>
-                </div>
+                <canvas id="q2-chart"></canvas>
+              </div>
+              <div style="margin-top: 1rem;">
+                <label>Log:</label>
+                <pre id="q2-result" class="result-box small" style="max-height: 150px;">...</pre>
+              </div>
             </div>
-            </section>
+          </section>
 
-            <section class="card">
+          <section class="card">
             <header class="card-header">
-                <div>
-                    <h2><i class="fa-solid fa-snowflake"></i> Tính mùa vụ (Seasonality)</h2>
-                    <p class="card-subtitle">So sánh pattern giữa các tháng (1-12) qua các năm.</p>
-                </div>
+              <div>
+                <h2><i class="fa-solid fa-snowflake"></i> Tính mùa vụ (Seasonality)</h2>
+                <p class="card-subtitle">So sánh pattern giữa các tháng (1-12) qua các năm.</p>
+              </div>
             </header>
             <div class="card-body">
-                <div class="analysis-controls" style="flex-wrap: nowrap;">
-                    <div class="control-group" style="flex:1;">
-                        <label for="q3-variable">Biến số</label>
-                        <select id="q3-variable">
-                            <option value="temperature">Temperature</option>
-                            <option value="relative_humidity">Relative Humidity</option>
-                            <option value="precipitation">Precipitation</option>
-                        </select>
-                    </div>
+              <div class="analysis-controls" style="flex-wrap: nowrap;">
+                <div class="control-group" style="flex:1;">
+                  <label for="q3-variable">Biến số</label>
+                  <select id="q3-variable">
+                    <option value="temperature">Temperature</option>
+                    <option value="relative_humidity">Relative Humidity</option>
+                    <option value="precipitation">Precipitation</option>
+                  </select>
                 </div>
-                <div style="margin-bottom: 1rem; display: flex;">
-                    <button id="btn-q3-draw" style="flex: 1; margin-right: 5px;">Vẽ Line</button>
-                    <button id="btn-q3-compare" style="flex: 1; margin-left: 5px;">So sánh năm</button> 
-                </div>
+              </div>
+              <div style="margin-bottom: 1rem; display: flex;">
+                <button id="btn-q3-draw" style="flex: 1; margin-right: 5px;">Vẽ Line</button>
+                <button id="btn-q3-compare" style="flex: 1; margin-left: 5px;">So sánh năm</button>
+              </div>
 
-                <div class="analysis-chart-wrapper" style="height: 300px;">
-                    <canvas id="q3-chart"></canvas>
+              <div class="analysis-chart-wrapper" style="height: 300px;">
+                <div style="display:flex; justify-content:flex-end; margin-bottom:4px; gap:6px;">
+                  <button id="btn-q3-reset" style="font-size: 0.8rem; padding: 0.3rem 0.7rem;">
+                    Reset zoom
+                  </button>
                 </div>
-                <div style="margin-top: 1rem;">
-                    <label>Log:</label>
-                    <pre id="q3-result" class="result-box small" style="max-height: 150px;">...</pre>
-                </div>
+                <canvas id="q3-chart"></canvas>
+              </div>
+              <div style="margin-top: 1rem;">
+                <label>Log:</label>
+                <pre id="q3-result" class="result-box small" style="max-height: 150px;">...</pre>
+              </div>
             </div>
-            </section> 
+          </section>
         </div>
       </section>
 
@@ -449,8 +567,8 @@
             <div class="card-body">
               <div class="field-row">
                 <div style="flex:1">
-                    <label for="predict-date">Ngày dự báo</label>
-                    <input type="date" id="predict-date" />
+                  <label for="predict-date">Ngày dự báo</label>
+                  <input type="date" id="predict-date" />
                 </div>
                 <button id="btn-predict"><i class="fa-solid fa-search"></i> &nbsp;Lấy dự báo</button>
               </div>
@@ -458,13 +576,14 @@
               <pre id="predict-result" class="result-box">Đang chờ dữ liệu đầu vào...</pre>
             </div>
           </section>
-          
-          <section class="card" style="justify-content: center; align-items: center; background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); color: white; border: none;">
-              <div style="text-align: center;">
-                  <i class="fa-solid fa-temperature-half" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.8;"></i>
-                  <h2>AI Weather Model</h2>
-                  <p style="opacity: 0.9; font-size: 0.9rem;">Hệ thống dự đoán thời tiết tự động</p>
-              </div>
+
+          <section class="card"
+            style="justify-content: center; align-items: center; background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); color: white; border: none;">
+            <div style="text-align: center;">
+              <i class="fa-solid fa-temperature-half" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.8;"></i>
+              <h2>AI Weather Model</h2>
+              <p style="opacity: 0.9; font-size: 0.9rem;">Hệ thống dự đoán thời tiết tự động</p>
+            </div>
           </section>
         </div>
       </section>
@@ -479,7 +598,8 @@
               </div>
             </header>
             <div class="card-body">
-              <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Hệ thống sẽ tự động lấy dữ liệu weather hiện tại và chạy thuật toán phân cụm (K-Means/DBSCAN).</p>
+              <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Hệ thống sẽ tự động lấy dữ
+                liệu weather hiện tại và chạy thuật toán phân cụm (K-Means/DBSCAN).</p>
               <button id="btn-cluster-auto"><i class="fa-solid fa-robot"></i> &nbsp;Chạy Auto Cluster</button>
               <pre id="cluster-auto-result" class="result-box">...</pre>
             </div>
@@ -518,26 +638,28 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+
   <script>
-      // Logic tab đơn giản
-      document.addEventListener('DOMContentLoaded', () => {
-          const buttons = document.querySelectorAll('.tab-button');
-          const panels = document.querySelectorAll('.tab-panel');
+    // Logic tab đơn giản
+    document.addEventListener('DOMContentLoaded', () => {
+      const buttons = document.querySelectorAll('.tab-button');
+      const panels = document.querySelectorAll('.tab-panel');
 
-          buttons.forEach(btn => {
-              btn.addEventListener('click', () => {
-                  buttons.forEach(b => b.classList.remove('active'));
-                  panels.forEach(p => p.classList.remove('active'));
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          panels.forEach(p => p.classList.remove('active'));
 
-                  btn.classList.add('active');
-                  const tabId = btn.getAttribute('data-tab');
-                  document.getElementById(tabId).classList.add('active');
-              });
-          });
+          btn.classList.add('active');
+          const tabId = btn.getAttribute('data-tab');
+          document.getElementById(tabId).classList.add('active');
+        });
       });
+    });
   </script>
-  
+
   <script src="/static/script.js"></script>
 </body>
+
 </html>

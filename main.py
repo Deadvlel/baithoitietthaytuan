@@ -12,6 +12,7 @@ import time
 from routes.predict_routes import router as predict_router
 from routes.data_analysis_routes import router as data_analysis_router
 from routes.cluster_routes import router as cluster_router
+from routes.ingestion_routes import router as ingestion_router
 
 # Import controllers
 import controller.predict_controller as predict_controller
@@ -25,6 +26,7 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 app.include_router(predict_router, prefix="/predict", tags=["Predict"])
 app.include_router(data_analysis_router, prefix="/analysis", tags=["Analysis"])
 app.include_router(cluster_router, prefix="/cluster", tags=["Weather AI"])
+app.include_router(ingestion_router, prefix="/ingestion", tags=["Ingestion"])
 
 @app.get("/")
 def root():
