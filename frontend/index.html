@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+
   <style>
     :root {
       --primary-color: #4361ee;
@@ -439,76 +440,113 @@
 
       <section id="tab-forecast" class="tab-panel">
         <div class="grid-2">
-          <section class="card">
+          
+          <section class="card" style="height: fit-content;">
             <header class="card-header">
               <div>
-                <h2>Dự báo theo ngày</h2>
-                <p class="card-subtitle">Chọn ngày cụ thể để mô hình AI đưa ra dự đoán.</p>
+                <h2><i class="fa-solid fa-calendar-days"></i> Dự báo theo ngày</h2>
+                <p class="card-subtitle">Chọn ngày cụ thể để mô hình AI đưa ra các chỉ số dự đoán.</p>
               </div>
             </header>
             <div class="card-body">
-              <div class="field-row">
-                <div style="flex:1">
-                    <label for="predict-date">Ngày dự báo</label>
-                    <input type="date" id="predict-date" />
-                </div>
-                <button id="btn-predict"><i class="fa-solid fa-search"></i> &nbsp;Lấy dự báo</button>
+              <div class="field-row" style="flex-direction: column; align-items: stretch;">
+                <label for="predict-date">Ngày (YYYY-MM-DD)</label>
+                <input type="date" id="predict-date" style="margin-bottom: 1rem;" />
+                
+                <button id="btn-predict" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> &nbsp;Lấy dự báo
+                </button>
               </div>
-              <label>Kết quả:</label>
-              <pre id="predict-result" class="result-box">Đang chờ dữ liệu đầu vào...</pre>
             </div>
           </section>
-          
-          <section class="card" style="justify-content: center; align-items: center; background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); color: white; border: none;">
-              <div style="text-align: center;">
-                  <i class="fa-solid fa-temperature-half" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.8;"></i>
-                  <h2>AI Weather Model</h2>
-                  <p style="opacity: 0.9; font-size: 0.9rem;">Hệ thống dự đoán thời tiết tự động</p>
+
+          <section class="card" style="min-height: 300px; justify-content: center; align-items: center; position: relative;">
+              
+              <div id="forecast-default" style="text-align: center; color: white; background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem;">
+                  <i class="fa-solid fa-temperature-half" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.8;"></i>
+                  <h2 style="color: white; font-size: 1.5rem;">AI Weather Model</h2>
+                  <p style="opacity: 0.9; font-size: 0.9rem;">Hệ thống dự đoán chỉ số thời tiết</p>
               </div>
+
+              <div id="forecast-visual-result" class="weather-result-container" style="display: none; width: 100%; padding: 0 1rem;">
+                
+                <div class="weather-icon-wrapper" style="text-align: center; margin-bottom: 0.5rem;">
+                    <i id="f-icon" class="fa-solid fa-cloud-sun"></i>
+                </div>
+
+                <p id="f-date-display" class="weather-date" style="text-align: center; margin-bottom: 2rem; font-size: 1.1rem; font-weight: 500;">---</p>
+
+                <div class="weather-details-grid">
+                    <div class="w-detail-item">
+                        <i class="fa-solid fa-temperature-half" style="color: #ef4444; font-size: 1.5rem;"></i>
+                        <span id="f-temp" style="font-size: 1.2rem;">0°C</span>
+                        <span style="font-size: 0.8em; color: #9ca3af;">Nhiệt độ</span>
+                    </div>
+                    <div class="w-detail-item">
+                        <i class="fa-solid fa-droplet" style="color: #3b82f6; font-size: 1.5rem;"></i>
+                        <span id="f-rain" style="font-size: 1.2rem;">0mm</span>
+                        <span style="font-size: 0.8em; color: #9ca3af;">Lượng mưa</span>
+                    </div>
+                    <div class="w-detail-item">
+                        <i class="fa-solid fa-cloud" style="color: #64748b; font-size: 1.5rem;"></i>
+                        <span id="f-cloud" style="font-size: 1.2rem;">0%</span>
+                        <span style="font-size: 0.8em; color: #9ca3af;">Mây che phủ</span>
+                    </div>
+                </div>
+
+                 <div class="weather-note" style="text-align: center; margin-top: 2rem;">
+                    <span class="badge-note">Raw Prediction Data</span>
+                </div>
+              </div>
+
           </section>
         </div>
       </section>
 
       <section id="tab-cluster" class="tab-panel">
-        <div class="grid-2">
-          <section class="card">
+        <div style="max-width: 600px; margin: 0 auto;"> <section class="card">
             <header class="card-header">
               <div>
-                <h2>Cluster Tự động</h2>
-                <p class="card-subtitle">Sử dụng dữ liệu bản ghi mới nhất từ Database.</p>
+                <h2><i class="fa-solid fa-robot"></i> Phân cụm thời tiết tự động</h2>
+                <p class="card-subtitle">Hệ thống AI tự động phân tích dữ liệu hiện tại và dán nhãn thời tiết.</p>
               </div>
             </header>
-            <div class="card-body">
-              <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Hệ thống sẽ tự động lấy dữ liệu weather hiện tại và chạy thuật toán phân cụm (K-Means/DBSCAN).</p>
-              <button id="btn-cluster-auto"><i class="fa-solid fa-robot"></i> &nbsp;Chạy Auto Cluster</button>
-              <pre id="cluster-auto-result" class="result-box">...</pre>
-            </div>
-          </section>
+            <div class="card-body" style="text-align: center;">
+              
+              <button id="btn-cluster-auto" class="btn-lg">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> &nbsp;Phân tích ngay
+              </button>
 
-          <section class="card">
-            <header class="card-header">
-              <div>
-                <h2>Cluster Nhập tay</h2>
-                <p class="card-subtitle">Nhập thông số đầu vào để test phân cụm.</p>
+              <div id="cluster-visual-result" class="weather-result-container" style="display: none;">
+                
+                <div class="weather-icon-wrapper">
+                    <i id="w-icon" class="fa-solid fa-cloud"></i>
+                </div>
+
+                <h3 id="w-label" class="weather-main-label">---</h3>
+                
+                <p id="w-date" class="weather-date">---</p>
+
+                <div class="weather-details-grid">
+                    <div class="w-detail-item">
+                        <i class="fa-solid fa-temperature-half"></i>
+                        <span id="w-temp">0°C</span>
+                    </div>
+                    <div class="w-detail-item">
+                        <i class="fa-solid fa-droplet"></i>
+                        <span id="w-rain">0mm</span>
+                    </div>
+                    <div class="w-detail-item">
+                        <i class="fa-solid fa-cloud"></i>
+                        <span id="w-cloud">0%</span>
+                    </div>
+                </div>
+
+                <div class="weather-note">
+                    <span id="w-note" class="badge-note">AI Decision</span>
+                </div>
               </div>
-            </header>
-            <div class="card-body">
-              <div class="field-grid">
-                <div>
-                  <label for="precipitation">Mưa (mm)</label>
-                  <input type="number" step="0.01" id="precipitation" placeholder="0.0" />
-                </div>
-                <div>
-                  <label for="cloudcover">Mây (%)</label>
-                  <input type="number" step="0.01" id="cloudcover" placeholder="0-100" />
-                </div>
-                <div>
-                  <label for="temperature">Nhiệt độ (°C)</label>
-                  <input type="number" step="0.01" id="temperature" placeholder="25.5" />
-                </div>
-              </div>
-              <button id="btn-cluster-manual"><i class="fa-solid fa-sliders"></i> &nbsp;Chạy Manual</button>
-              <pre id="cluster-manual-result" class="result-box">...</pre>
+
             </div>
           </section>
         </div>
@@ -537,7 +575,9 @@
           });
       });
   </script>
-  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
   <script src="/static/script.js"></script>
 </body>
 </html>

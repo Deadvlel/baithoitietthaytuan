@@ -12,6 +12,83 @@ body {
   color: #e5e7eb;
 }
 
+/* --- Weather Visual Styles --- */
+    .btn-lg {
+        padding: 0.8rem 2rem;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    .weather-result-container {
+        margin-top: 1rem;
+        animation: slideUp 0.5s ease-out;
+    }
+
+    .weather-icon-wrapper {
+        font-size: 5rem; /* Icon siêu to */
+        margin-bottom: 1rem;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+
+    .weather-main-label {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.5rem;
+    }
+
+    .weather-date {
+        color: var(--text-muted);
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .weather-details-grid {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1.5rem;
+    }
+
+    .w-detail-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+    
+    .w-detail-item i {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+    }
+
+    .badge-note {
+        background-color: #e0e7ff;
+        color: #4361ee;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Màu sắc icon theo thời tiết */
+    .icon-sun { color: #f59e0b; } /* Cam vàng */
+    .icon-rain { color: #3b82f6; } /* Xanh dương */
+    .icon-storm { color: #6366f1; } /* Tím than */
+    .icon-cloud { color: #64748b; } /* Xám */
+
 .app {
   max-width: 1100px;
   margin: 0 auto;
