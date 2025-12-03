@@ -313,6 +313,29 @@
 
       <section id="tab-analysis" class="tab-panel active">
         
+<section class="card" style="margin-bottom: 1.75rem;">
+          <header class="card-header">
+            <div>
+              <h2><i class="fa-solid fa-cloud-arrow-down"></i> Dữ liệu thời tiết mới nhất</h2>
+              <p class="card-subtitle">
+                Gọi Open-Meteo để tải lại dữ liệu mới nhất vào database, dùng cho toàn bộ phân tích bên dưới.
+              </p>
+            </div>
+          </header>
+          <div class="card-body">
+            <div style="display:flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem;">
+              <button id="btn-refresh-ingestion">
+                <i class="fa-solid fa-cloud-arrow-down"></i> &nbsp;Lấy dữ liệu thời tiết mới nhất
+              </button>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">
+                Thao tác này có thể mất vài giây do gọi API bên ngoài.
+              </span>
+            </div>
+            <label>Kết quả cập nhật:</label>
+            <pre id="ingestion-result" class="result-box small">Chưa chạy cập nhật dữ liệu.</pre>
+          </div>
+        </section>
+
         <section class="card" style="margin-bottom: 2rem;">
           <header class="card-header">
             <div>
@@ -358,20 +381,19 @@
               </div>
             </div>
 
-            <div class="analysis-layout">
-              <div class="analysis-chart-wrapper">
+            <div class="analysis-chart-wrapper" style="height: 400px;">
                 <canvas id="q1-chart"></canvas>
-              </div>
-              <div class="analysis-side">
-                <h3>Chi tiết dữ liệu</h3>
-                <pre id="q1-result" class="result-box small">Waiting for data...</pre>
-              </div>
             </div>
+            
+            <div style="margin-top: 1rem;">
+                <label>Chi tiết dữ liệu:</label>
+                <pre id="q1-result" class="result-box small">Waiting for data...</pre>
+            </div>
+
           </div>
         </section>
 
-        <div class="grid-2">
-            <section class="card">
+        <section class="card" style="margin-bottom: 2rem;">
             <header class="card-header">
                 <div>
                 <h2><i class="fa-solid fa-arrow-trend-up"></i> Xu hướng tháng (Trend)</h2>
@@ -393,17 +415,16 @@
                 </div>
                 </div>
 
-                <div class="analysis-chart-wrapper" style="height: 300px;">
-                    <canvas id="q2-chart"></canvas>
+                <div class="analysis-chart-wrapper" style="height: 400px;"> <canvas id="q2-chart"></canvas>
                 </div>
                 <div style="margin-top: 1rem;">
                     <label>Log:</label>
                     <pre id="q2-result" class="result-box small" style="max-height: 150px;">...</pre>
                 </div>
             </div>
-            </section>
+        </section>
 
-            <section class="card">
+        <section class="card" style="margin-bottom: 2rem;">
             <header class="card-header">
                 <div>
                     <h2><i class="fa-solid fa-snowflake"></i> Tính mùa vụ (Seasonality)</h2>
@@ -426,16 +447,15 @@
                     <button id="btn-q3-compare" style="flex: 1; margin-left: 5px;">So sánh năm</button> 
                 </div>
 
-                <div class="analysis-chart-wrapper" style="height: 300px;">
-                    <canvas id="q3-chart"></canvas>
+                <div class="analysis-chart-wrapper" style="height: 400px;"> <canvas id="q3-chart"></canvas>
                 </div>
                 <div style="margin-top: 1rem;">
                     <label>Log:</label>
                     <pre id="q3-result" class="result-box small" style="max-height: 150px;">...</pre>
                 </div>
             </div>
-            </section> 
-        </div>
+        </section> 
+
       </section>
 
       <section id="tab-forecast" class="tab-panel">
@@ -576,8 +596,9 @@
       });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
   <script src="/static/script.js"></script>
+
 </body>
 </html>

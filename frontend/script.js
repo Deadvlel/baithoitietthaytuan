@@ -1,94 +1,135 @@
-// Thay đổi BASE_URL nếu frontend chạy ở domain khác
-// Mặc định: cùng host với FastAPI (vd: http://localhost:8000)
-const BASE_URL = "";
+/************************************************************
+ * 1. CẤU HÌNH HỆ THỐNG
+ ************************************************************/
+const BASE_URL = ""; // Nếu frontend host riêng, sửa tại đây
 
-// === HÀM HELPER CƠ BẢN ===
+// Kiểm tra HammerJS
+if (typeof Hammer === "undefined") {
+    console.warn("Cảnh báo: HammerJS chưa được tải. Tính năng Pan sẽ không hoạt động!");
+}
+
+// Đăng ký plugin Zoom (Chart.js)
+if (typeof ChartZoom !== "undefined" && typeof Chart !== "undefined") {
+    Chart.register(ChartZoom);
+}
+
+
+/************************************************************
+ * 2. HÀM TIỆN ÍCH (HELPERS)
+ ************************************************************/
 function setResult(id, data) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  try {
-    el.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
-  } catch {
-    el.textContent = String(data);
-  }
+    const el = document.getElementById(id);
+    if (!el) return;
+    try {
+        el.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    } catch {
+        el.textContent = String(data);
+    }
 }
 
 async function callApi(url, options = {}, targetResultId) {
-  setResult(targetResultId, "Đang gọi API...");
-  try {
-    const res = await fetch(BASE_URL + url, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      ...options,
-    });
+    setResult(targetResultId, "Đang gọi API...");
 
-    const contentType = res.headers.get("content-type") || "";
+    try {
+        const res = await fetch(BASE_URL + url, {
+            headers: { "Content-Type": "application/json" },
+            ...options,
+        });
 
-    if (!res.ok) {
-      const text = await res.text();
-      setResult(targetResultId, `Lỗi HTTP ${res.status}: ${text}`);
-      return;
+        const contentType = res.headers.get("content-type") || "";
+
+        if (!res.ok) {
+            const text = await res.text();
+            setResult(targetResultId, `Lỗi HTTP ${res.status}: ${text}`);
+            return;
+        }
+
+        if (contentType.includes("application/json")) {
+            setResult(targetResultId, await res.json());
+        } else {
+            setResult(targetResultId, await res.text());
+        }
+    } catch (err) {
+        setResult(targetResultId, `Lỗi khi gọi API: ${err}`);
     }
-
-    if (contentType.includes("application/json")) {
-      const json = await res.json();
-      setResult(targetResultId, json);
-    } else {
-      const text = await res.text();
-      setResult(targetResultId, text);
-    }
-  } catch (err) {
-    setResult(targetResultId, `Lỗi khi gọi API: ${err}`);
-  }
 }
 
-// === CẤU HÌNH ZOOM & PAN (MỚI) ===
+
+/************************************************************
+ * 3. CẤU HÌNH ZOOM / PAN CHO CHART.JS
+ ************************************************************/
+
 const commonZoomOptions = {
     pan: {
         enabled: true,
-        mode: 'x', // Chỉ cho phép kéo sang trái/phải
+        mode: "x",
+        threshold: 10,
     },
     zoom: {
-        wheel: {
-            enabled: true, // Cho phép lăn chuột để zoom
-        },
-        pinch: {
-            enabled: true // Cho phép dùng 2 ngón tay zoom trên mobile
-        },
-        mode: 'x', // Chỉ zoom trục X (thời gian)
-    }
+        wheel: { enabled: true, speed: 0.1 },
+        pinch: { enabled: true },
+        mode: "x",
+    },
+    limits: {
+        x: { min: "original", max: "original", minRange: 1 },
+    },
 };
 
-// === CÁC HÀM RENDER CHART (CHART.JS) ===
+/* === ZOOM/PAN RIÊNG CHO SEASONALITY === */
+const seasonalityZoomOptions = {
+    pan: {
+        enabled: true,       
+        mode: "x",           
+        threshold: 10,       
+        modifierKey: null,   
+        onPanComplete: ({ chart }) => {
+            // Reset drag state sau pan để tránh zoom không mong muốn
+            if (chart._zoomState) {
+                chart._zoomState.dragStart = null;
+                chart._zoomState.dragEnd = null;
+            }
+        },
+    },
+    zoom: {
+        wheel: { enabled: true, speed: 0.12 }, 
+        pinch: { enabled: true },             
+        drag: { enabled: false },              
+        mode: "x",
+    },
+    limits: {
+        x: { min: "original", max: "original", minRange: 1 },
+    },
+};
 
+
+/************************************************************
+ * 4. HÀM RENDER BIỂU ĐỒ (Chart.js)
+ ************************************************************/
+
+// 4.1 – So sánh theo năm (multiple line)
 function renderSeasonalComparisonChart(canvasId, data) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
     const ctx = canvas.getContext("2d");
-    
-    // Danh sách màu sắc cho các năm
-    const colorPalette = [
-        "rgba(255, 99, 132, 1)", // Đỏ
-        "rgba(54, 162, 235, 1)", // Xanh dương
-        "rgba(255, 206, 86, 1)", // Vàng
-        "rgba(75, 192, 192, 1)", // Xanh lá
-        "rgba(153, 102, 255, 1)", // Tím
+
+    const colors = [
+        "rgba(255,99,132,1)",
+        "rgba(54,162,235,1)",
+        "rgba(255,206,86,1)",
+        "rgba(75,192,192,1)",
+        "rgba(153,102,255,1)",
     ];
 
-    const labels = data.datasets.length > 0 ? data.datasets[0].points.map((p) => p.x) : [];
+    const labels = data.datasets[0]?.points.map((p) => p.x) || [];
 
-    const datasets = data.datasets.map((ds, index) => {
-        const values = ds.points.map((p) => p.y);
-        const color = colorPalette[index % colorPalette.length];
-
+    const datasets = data.datasets.map((ds, i) => {
+        const color = colors[i % colors.length];
         return {
-            label: ds.label, 
-            data: values,
+            label: ds.label,
+            data: ds.points.map((p) => p.y),
             borderColor: color,
-            backgroundColor: color.replace('1)', '0.1)'),
+            backgroundColor: color.replace("1)", "0.1)"),
             tension: 0.25,
-            fill: false,
             pointRadius: 4,
             pointHoverRadius: 6,
         };
@@ -96,79 +137,57 @@ function renderSeasonalComparisonChart(canvasId, data) {
 
     return new Chart(ctx, {
         type: "line",
-        data: {
-            labels,
-            datasets: datasets,
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: {
-                    title: { display: true, text: data.x_label || "Month (1-12)" },
-                    ticks: { stepSize: 1 },
-                },
-                y: {
-                    title: { display: true, text: data.y_label || "Y" },
-                },
+                x: { title: { display: true, text: data.x_label || "Month" } },
+                y: { title: { display: true, text: data.y_label || "Value" } },
             },
             plugins: {
-                legend: { display: true, position: 'top' },
-                zoom: commonZoomOptions, // <--- KÍCH HOẠT ZOOM
+                legend: { position: "top" },
+                zoom: commonZoomOptions,
                 title: {
                     display: true,
-                    text: 'Mẹo: Lăn chuột để phóng to, giữ chuột trái kéo để di chuyển',
-                    position: 'bottom',
-                    font: { size: 10, style: 'italic' },
-                    color: '#666'
-                }
-            }
+                    text: "Lăn chuột để zoom – kéo để dịch chuyển",
+                    position: "bottom",
+                    font: { size: 10, style: "italic" },
+                },
+            },
         },
     });
 }
 
+// 4.2 – Histogram
 function renderHistogramChart(canvasId, data, label) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
     const ctx = canvas.getContext("2d");
 
-    const labels = data.bin_mids || data.bin_edges;
-    const counts = data.counts;
-
     return new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label,
-            data: counts,
-            backgroundColor: "rgba(129, 140, 248, 0.6)",
-            borderColor: "rgba(129, 140, 248, 1)",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false, // Fix chiều cao
-        scales: {
-          x: { title: { display: true, text: data.x_label || "X" } },
-          y: { title: { display: true, text: data.y_label || "Y" } },
+        type: "bar",
+        data: {
+            labels: data.bin_mids || data.bin_edges,
+            datasets: [
+                {
+                    label,
+                    data: data.counts,
+                    backgroundColor: "rgba(129,140,248,0.6)",
+                    borderColor: "rgba(129,140,248,1)",
+                },
+            ],
         },
-        plugins: {
-            zoom: commonZoomOptions, // <--- KÍCH HOẠT ZOOM
-            title: {
-                display: true,
-                text: 'Lăn chuột để Zoom',
-                position: 'bottom',
-                font: { size: 10, style: 'italic' }
-            }
-        }
-      },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { zoom: commonZoomOptions },
+        },
     });
 }
 
-function renderLineLikeChart(canvasId, data, options = {}) {
+// 4.3 – Line / Scatter chung
+function renderLineLikeChart(canvasId, data, { label, isScatter = false, fillArea = true }) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
     const ctx = canvas.getContext("2d");
@@ -176,407 +195,259 @@ function renderLineLikeChart(canvasId, data, options = {}) {
     const labels = data.points.map((p) => p.x);
     const values = data.points.map((p) => p.y);
 
-    const {
-      label = `${data.variable} - ${data.kind}`,
-      isScatter = false,
-      fillArea = true,
-    } = options;
-
     return new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label,
-            data: values,
-            borderColor: "rgba(56, 189, 248, 1)",
-            backgroundColor: "rgba(56, 189, 248, 0.3)",
-            tension: isScatter ? 0 : 0.25,
-            fill: fillArea,
-            showLine: !isScatter,
-            pointRadius: isScatter ? 3 : 1.5,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false, // Fix chiều cao
-        scales: {
-          x: { title: { display: true, text: data.x_label || "X" } },
-          y: { title: { display: true, text: data.y_label || "Y" } },
+        type: "line",
+        data: {
+            labels,
+            datasets: [
+                {
+                    label,
+                    data: values,
+                    tension: isScatter ? 0 : 0.25,
+                    borderColor: "rgba(56,189,248,1)",
+                    backgroundColor: "rgba(56,189,248,0.3)",
+                    fill: fillArea,
+                    showLine: !isScatter,
+                    pointRadius: isScatter ? 3 : 1.5,
+                },
+            ],
         },
-        plugins: {
-            zoom: commonZoomOptions, // <--- KÍCH HOẠT ZOOM
-            title: {
-                display: true,
-                text: 'Mẹo: Lăn chuột để phóng to, Kéo để di chuyển',
-                position: 'bottom',
-                font: { size: 10, style: 'italic' },
-                color: '#666'
-            }
-        }
-      },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { zoom: commonZoomOptions },
+        },
     });
 }
 
-// === MAIN LOGIC (GIỮ NGUYÊN) ===
+// 4.4 – Seasonality chart riêng – CHỈ PAN, KHÔNG DRAG ZOOM
+function renderSeasonalityChart(canvasId, data, label) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const ctx = canvas.getContext("2d");
 
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. Tabs điều hướng
-  const tabButtons = document.querySelectorAll(".tab-button");
-  const tabPanels = document.querySelectorAll(".tab-panel");
+    const labels = data.points.map(p => p.x);
+    const values = data.points.map(p => p.y);
 
-  tabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const targetId = btn.getAttribute("data-tab");
-      if (!targetId) return;
-
-      tabButtons.forEach((b) => b.classList.remove("active"));
-      tabPanels.forEach((p) => p.classList.remove("active"));
-
-      btn.classList.add("active");
-      const panel = document.getElementById(targetId);
-      if (panel) panel.classList.add("active");
+    return new Chart(ctx, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label,
+                data: values,
+                borderColor: "rgba(56,189,248,1)",
+                backgroundColor: "rgba(56,189,248,0.3)",
+                tension: 0.25,
+                pointRadius: 3,
+                fill: false
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                zoom: seasonalityZoomOptions,
+            },
+        },
     });
-  });
-
-  // 2. Predict theo ngày
-  const btnPredict = document.getElementById("btn-predict");
-  btnPredict?.addEventListener("click", async () => {
-    const dateInput = document.getElementById("predict-date");
-    const day = dateInput?.value;
-    
-    // UI Elements
-    const defaultView = document.getElementById('forecast-default');
-    const resultView = document.getElementById('forecast-visual-result');
-    const btn = btnPredict;
-
-    if (!day) {
-      alert("Vui lòng chọn ngày (YYYY-MM-DD).");
-      return;
-    }
-
-    // Loading
-    const originalText = '<i class="fa-solid fa-magnifying-glass-chart"></i> &nbsp;Lấy dự báo';
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
-    btn.disabled = true;
-
-    try {
-        const res = await fetch(`${BASE_URL}/predict/predict/${day}`);
-        if (!res.ok) {
-            const text = await res.text();
-            alert(`Lỗi HTTP ${res.status}: ${text}`);
-            return;
-        }
-
-        const json = await res.json();
-
-        if (json.status === 'success') {
-            const data = json.data;
-            
-            // Lấy 3 biến số quan trọng
-            const temp = parseFloat(data.pred_temperature);
-            const rain = parseFloat(data.pred_precipitation);
-            const cloud = parseFloat(data.pred_cloudcover);
-
-            // --- Logic Icon Minh Họa ---
-            let iconClass = "fa-cloud-sun";
-            let colorClass = "icon-cloud"; 
-
-            if (rain > 1.0) {
-                iconClass = "fa-cloud-showers-heavy";
-                colorClass = "icon-rain";
-            } else if (rain > 0.1) {
-                iconClass = "fa-cloud-rain";
-                colorClass = "icon-rain";
-            } else if (cloud > 60) {
-                iconClass = "fa-cloud";
-                colorClass = "icon-cloud";
-            } else if (cloud > 30) {
-                iconClass = "fa-cloud-sun";
-                colorClass = "icon-sun";
-            } else {
-                iconClass = "fa-sun";
-                colorClass = "icon-sun";
-            }
-
-            // --- CẬP NHẬT GIAO DIỆN ---
-            // 1. Icon minh họa
-            const iconEl = document.getElementById('f-icon');
-            if(iconEl) iconEl.className = `fa-solid ${iconClass} ${colorClass}`;
-
-            // 2. Ngày
-            const dateEl = document.getElementById('f-date-display');
-            if(dateEl) dateEl.textContent = `Dự báo cho ngày: ${data.date}`;
-            
-            // 3. Số liệu
-            const tempEl = document.getElementById('f-temp');
-            if(tempEl) tempEl.textContent = `${temp.toFixed(1)}°C`;
-            
-            const rainEl = document.getElementById('f-rain');
-            if(rainEl) rainEl.textContent = `${rain.toFixed(2)}mm`;
-            
-            const cloudEl = document.getElementById('f-cloud');
-            if(cloudEl) cloudEl.textContent = `${cloud.toFixed(1)}%`;
-
-            // Hiện kết quả
-            if(defaultView) defaultView.style.display = 'none';
-            if(resultView) resultView.style.display = 'block';
-
-        } else {
-            alert("Lỗi từ server: " + (json.message || JSON.stringify(json)));
-        }
-
-    } catch (err) {
-        console.error(err);
-        alert(`Lỗi kết nối: ${err}`);
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-  });
-
-  // ============================================================
-  // 3. Cluster Auto (VISUAL UI)
-  // ============================================================
-  const btnClusterAuto = document.getElementById("btn-cluster-auto");
-  btnClusterAuto?.addEventListener("click", async () => {
-    const resultContainer = document.getElementById('cluster-visual-result');
-    const btn = btnClusterAuto;
-
-    // Hiệu ứng Loading
-    const originalText = '<i class="fa-solid fa-wand-magic-sparkles"></i> &nbsp;Phân tích ngay';
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang phân tích...';
-    btn.disabled = true;
-    
-    // Ẩn kết quả cũ nếu có
-    if (resultContainer) resultContainer.style.display = 'none';
-
-    try {
-        const res = await fetch(BASE_URL + "/cluster/cluster/auto-latest");
-        const json = await res.json();
-
-        if (json.status === 'success') {
-            const data = json.data;
-            const label = data.predicted_label;
-            
-            // Map icon & color
-            const iconEl = document.getElementById('w-icon');
-            let iconClass = 'fa-cloud';
-            let colorClass = 'icon-cloud';
-
-            if (label.includes("Âm u")) {
-                iconClass = "fa-cloud";
-                colorClass = "icon-cloud";
-            } 
-            else if (label.includes("Quang đãng")) {
-                iconClass = "fa-sun";
-                colorClass = "icon-sun";
-            }
-            else if (label.includes("Mưa nhẹ")) {
-                iconClass = "fa-cloud-rain";
-                colorClass = "icon-rain";
-            }
-            else if (label.includes("Mưa vừa")) {
-                iconClass = "fa-cloud-showers-heavy";
-                colorClass = "icon-rain";
-            }
-            else if (label.includes("Mưa lớn")) {
-                iconClass = "fa-cloud-bolt"; 
-                colorClass = "icon-storm";
-            }
-
-            // Update DOM
-            if (iconEl) iconEl.className = `fa-solid ${iconClass} ${colorClass}`;
-            
-            const wLabel = document.getElementById('w-label');
-            if (wLabel) wLabel.textContent = label;
-
-            const wDate = document.getElementById('w-date');
-            if (wDate) wDate.textContent = `Dự báo cho ngày: ${data.date_forecast}`;
-            
-            const inputs = data.inputs || {};
-            const wTemp = document.getElementById('w-temp');
-            const wRain = document.getElementById('w-rain');
-            const wCloud = document.getElementById('w-cloud');
-
-            if(wTemp) wTemp.textContent = `${parseFloat(inputs.temperature || 0).toFixed(1)}°C`;
-            if(wRain) wRain.textContent = `${parseFloat(inputs.precipitation || 0).toFixed(2)}mm`;
-            if(wCloud) wCloud.textContent = `${parseFloat(inputs.cloudcover || 0).toFixed(1)}%`;
-            
-            const wNote = document.getElementById('w-note');
-            if(wNote) wNote.textContent = data.logic_note || "AI Analysis";
-
-            // Hiện kết quả
-            if (resultContainer) resultContainer.style.display = 'block';
-
-        } else {
-            alert("API Error: " + (json.message || JSON.stringify(json)));
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Lỗi kết nối tới Server: " + err);
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-  });
+}
 
 
-  // ====== 4. PHÂN TÍCH DỮ LIỆU ======
+/************************************************************
+ * 5. LOGIC GIAO DIỆN (UI EVENTS)
+ ************************************************************/
+document.addEventListener("DOMContentLoaded", () => {
 
-  let q1ChartInstance = null;
-  let q2ChartInstance = null;
-  let q3ChartInstance = null;
-
-  async function fetchChartData(paramsObj) {
-    const params = new URLSearchParams(paramsObj);
-    const res = await fetch(`${BASE_URL}/analysis/chart-data?${params.toString()}`);
-    return res.json();
-  }
-
-  // Câu 1
-  const btnQ1 = document.getElementById("btn-q1-draw");
-  btnQ1?.addEventListener("click", async () => {
-    const variable = document.getElementById("q1-variable")?.value || "temperature";
-    const chartType = document.getElementById("q1-chart-type")?.value || "line";
-    const windowSelect = document.getElementById("q1-window");
-    const binsInput = document.getElementById("q1-bins");
-
-    const days = windowSelect ? parseInt(windowSelect.value, 10) || 30 : 30;
-    const bins = binsInput ? parseInt(binsInput.value, 10) || 20 : 20;
-
-    setResult("q1-result", "Đang tải dữ liệu...");
-
-    try {
-      const chartKind = chartType === "histogram" ? "histogram" : "time_series";
-      const params = { variable, chart_kind: chartKind };
-      
-      if (chartKind === "time_series" || chartKind === "histogram") {
-        params.days = String(days);
-      }
-      if (chartKind === "histogram") {
-        params.bins = String(bins);
-      }
-
-      const json = await fetchChartData(params);
-      if (json.status !== "success") {
-        setResult("q1-result", json);
-        return;
-      }
-
-      const data = json.data;
-      setResult("q1-result", data); // Hiển thị text log
-
-      if (q1ChartInstance) q1ChartInstance.destroy();
-
-      if (data.kind === "histogram") {
-        q1ChartInstance = renderHistogramChart(
-          "q1-chart",
-          data,
-          `${data.variable} - histogram`
-        );
-      } else {
-        const isScatter = chartType === "scatter";
-        q1ChartInstance = renderLineLikeChart("q1-chart", data, {
-          isScatter,
-          fillArea: !isScatter,
+    /* --- TAB NAVIGATION --- */
+    document.querySelectorAll(".tab-button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const id = btn.dataset.tab;
+            document.querySelectorAll(".tab-button").forEach((b) => b.classList.remove("active"));
+            document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+            btn.classList.add("active");
+            document.getElementById(id)?.classList.add("active");
         });
-      }
-    } catch (err) {
-      setResult("q1-result", `Lỗi: ${err}`);
+    });
+
+    /* --- PREDICT --- */
+    const btnPredict = document.getElementById("btn-predict");
+    btnPredict?.addEventListener("click", async () => {
+        const day = document.getElementById("predict-date")?.value;
+        if (!day) return alert("Vui lòng chọn ngày!");
+        const btn = btnPredict;
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-spinner fa-spin"></i> Đang xử lý...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${BASE_URL}/predict/predict/${day}`);
+            const json = await res.json();
+            if (json.status === "success") updateForecastUI(json.data);
+            else alert(json.message);
+        } catch (e) { alert("Lỗi kết nối: " + e); }
+        finally { btn.innerHTML = original; btn.disabled = false; }
+    });
+
+    /* --- CLUSTER AUTO --- */
+    const btnClusterAuto = document.getElementById("btn-cluster-auto");
+    btnClusterAuto?.addEventListener("click", async () => {
+        const btn = btnClusterAuto;
+        const resultDiv = document.getElementById("cluster-visual-result");
+        const loading = '<i class="fa-spinner fa-spin"></i> Đang phân tích...';
+        const original = btn.innerHTML;
+        btn.innerHTML = loading;
+        btn.disabled = true;
+        resultDiv.style.display = "none";
+
+        try {
+            const res = await fetch(`${BASE_URL}/cluster/cluster/auto-latest`);
+            const json = await res.json();
+            if (json.status === "success") updateClusterUI(json.data);
+            else alert(json.message);
+        } catch (e) { alert("Lỗi kết nối: " + e); }
+        finally { btn.innerHTML = original; btn.disabled = false; }
+    });
+
+    /* --- INGESTION --- */
+    document.getElementById("btn-refresh-ingestion")?.addEventListener("click", () => {
+        callApi("/ingestion/refresh", { method: "POST" }, "ingestion-result");
+    });
+
+    /* --- ANALYSIS CHARTS --- */
+    let q1Chart, q2Chart, q3Chart;
+
+    async function fetchChart(params) {
+        const query = new URLSearchParams(params);
+        const res = await fetch(`${BASE_URL}/analysis/chart-data?${query.toString()}`);
+        return res.json();
     }
-  });
 
-  // Câu 2
-  const btnQ2 = document.getElementById("btn-q2-draw");
-  btnQ2?.addEventListener("click", async () => {
-    const variable = document.getElementById("q2-variable")?.value || "temperature";
-    setResult("q2-result", "Đang tải dữ liệu...");
+    // --- Q1
+    document.getElementById("btn-q1-draw")?.addEventListener("click", async () => {
+        const variable = document.getElementById("q1-variable")?.value;
+        const chartType = document.getElementById("q1-chart-type")?.value;
 
-    try {
-      const json = await fetchChartData({
-        variable,
-        chart_kind: "trend_monthly",
-      });
+        setResult("q1-result", "Đang tải dữ liệu...");
+        const params = {
+            variable,
+            chart_kind: chartType === "histogram" ? "histogram" : "time_series",
+            days: document.getElementById("q1-window")?.value,
+            bins: document.getElementById("q1-bins")?.value,
+        };
+        const json = await fetchChart(params);
+        if (json.status !== "success") return setResult("q1-result", json);
 
-      if (json.status !== "success") {
-        setResult("q2-result", json);
-        return;
-      }
+        const data = json.data;
+        setResult("q1-result", data);
 
-      const data = json.data;
-      setResult("q2-result", data);
+        if (q1Chart) q1Chart.destroy();
+        if (data.kind === "histogram") {
+            q1Chart = renderHistogramChart("q1-chart", data, `${data.variable} - histogram`);
+        } else {
+            q1Chart = renderLineLikeChart("q1-chart", data, {
+                label: `${data.variable} - timeseries`,
+                isScatter: chartType === "scatter",
+                fillArea: chartType !== "scatter",
+            });
+        }
+    });
 
-      if (q2ChartInstance) q2ChartInstance.destroy();
+    // --- Q2
+    document.getElementById("btn-q2-draw")?.addEventListener("click", async () => {
+        setResult("q2-result", "Đang tải dữ liệu...");
+        const variable = document.getElementById("q2-variable")?.value;
+        const json = await fetchChart({ variable, chart_kind: "trend_monthly" });
+        if (json.status !== "success") return setResult("q2-result", json);
 
-      q2ChartInstance = renderLineLikeChart("q2-chart", data, {
-        isScatter: false,
-        fillArea: true,
-      });
-    } catch (err) {
-      setResult("q2-result", `Lỗi: ${err}`);
-    }
-  });
+        const data = json.data;
+        setResult("q2-result", data);
 
-  // Câu 3: seasonality_monthly (1 đường trung bình)
-  const btnQ3 = document.getElementById("btn-q3-draw");
-  btnQ3?.addEventListener("click", async () => {
-    const variable = document.getElementById("q3-variable")?.value || "temperature";
-    setResult("q3-result", "Đang tải dữ liệu...");
+        if (q2Chart) q2Chart.destroy();
+        q2Chart = renderLineLikeChart("q2-chart", data, { label: `${variable} - trend` });
+    });
 
-    try {
-      const json = await fetchChartData({
-        variable,
-        chart_kind: "seasonality_monthly",
-      });
+    // --- Q3 SEASONALITY
+    document.getElementById("btn-q3-draw")?.addEventListener("click", async () => {
+        setResult("q3-result", "Đang tải dữ liệu...");
+        const variable = document.getElementById("q3-variable")?.value;
+        const json = await fetchChart({ variable, chart_kind: "seasonality_monthly" });
+        if (json.status !== "success") return setResult("q3-result", json);
 
-      if (json.status !== "success") {
-        setResult("q3-result", json);
-        return;
-      }
+        const data = json.data;
+        setResult("q3-result", data);
 
-      const data = json.data;
-      setResult("q3-result", data);
+        if (q3Chart) q3Chart.destroy();
+        q3Chart = renderSeasonalityChart("q3-chart", data, `${variable} - seasonality`);
+    });
 
-      if (q3ChartInstance) q3ChartInstance.destroy();
+    // --- Q3 COMPARE YEAR
+    document.getElementById("btn-q3-compare")?.addEventListener("click", async () => {
+        setResult("q3-result", "Đang tải dữ liệu...");
+        const variable = document.getElementById("q3-variable")?.value;
+        const json = await fetchChart({ variable, chart_kind: "seasonal_yearly_comparison" });
+        if (json.status !== "success") return setResult("q3-result", json);
 
-      q3ChartInstance = renderLineLikeChart("q3-chart", data, {
-        isScatter: false,
-        fillArea: false,
-      });
-    } catch (err) {
-      setResult("q3-result", `Lỗi: ${err}`);
-    }
-  });
-  
-  // Câu 3: So sánh các năm (Nhiều đường)
-  const btnQ3Compare = document.getElementById("btn-q3-compare");
-  btnQ3Compare?.addEventListener("click", async () => {
-    const variable = document.getElementById("q3-variable")?.value || "temperature";
-    setResult("q3-result", "Đang tải dữ liệu so sánh các năm...");
+        const data = json.data;
+        setResult("q3-result", data);
 
-    try {
-      const json = await fetchChartData({
-        variable,
-        chart_kind: "seasonal_yearly_comparison",
-      });
-
-      if (json.status !== "success") {
-        setResult("q3-result", json);
-        return;
-      }
-
-      const data = json.data;
-      setResult("q3-result", data);
-
-      if (q3ChartInstance) q3ChartInstance.destroy();
-
-      q3ChartInstance = renderSeasonalComparisonChart("q3-chart", data); 
-
-    } catch (err) {
-      setResult("q3-result", `Lỗi: ${err}`);
-    }
-  });
+        if (q3Chart) q3Chart.destroy();
+        q3Chart = renderSeasonalComparisonChart("q3-chart", data);
+    });
 });
+
+
+/************************************************************
+ * 6.5 – UPDATE UI CHO PREDICT & CLUSTER
+ ************************************************************/
+function updateForecastUI(data) {
+    const temp = parseFloat(data.pred_temperature);
+    const rain = parseFloat(data.pred_precipitation);
+    const cloud = parseFloat(data.pred_cloudcover);
+
+    const iconEl = document.getElementById("f-icon");
+
+    let icon = "fa-cloud-sun";
+    let color = "icon-cloud";
+
+    if (rain > 1.0) { icon = "fa-cloud-showers-heavy"; color = "icon-rain"; }
+    else if (rain > 0.1) { icon = "fa-cloud-rain"; color = "icon-rain"; }
+    else if (cloud > 60) { icon = "fa-cloud"; color = "icon-cloud"; }
+    else if (cloud > 30) { icon = "fa-cloud-sun"; color = "icon-sun"; }
+    else { icon = "fa-sun"; color = "icon-sun"; }
+
+    if (iconEl) iconEl.className = `fa-solid ${icon} ${color}`;
+
+    document.getElementById("f-date-display").textContent = `Dự báo cho ngày: ${data.date}`;
+    document.getElementById("f-temp").textContent = `${temp.toFixed(1)}°C`;
+    document.getElementById("f-rain").textContent = `${rain.toFixed(2)}mm`;
+    document.getElementById("f-cloud").textContent = `${cloud.toFixed(1)}%`;
+
+    document.getElementById("forecast-default").style.display = "none";
+    document.getElementById("forecast-visual-result").style.display = "block";
+}
+
+function updateClusterUI(data) {
+    const label = data.predicted_label;
+    const iconEl = document.getElementById("w-icon");
+
+    let icon = "fa-cloud", color = "icon-cloud";
+
+    if (label.includes("Quang")) { icon = "fa-sun"; color = "icon-sun"; }
+    else if (label.includes("Mưa nhẹ")) { icon = "fa-cloud-rain"; color = "icon-rain"; }
+    else if (label.includes("Mưa vừa")) { icon = "fa-cloud-showers-heavy"; color = "icon-rain"; }
+    else if (label.includes("Mưa lớn")) { icon = "fa-cloud-bolt"; color = "icon-storm"; }
+
+    iconEl.className = `fa-solid ${icon} ${color}`;
+
+    document.getElementById("w-label").textContent = label;
+    document.getElementById("w-date").textContent = `Dự báo cho ngày: ${data.date_forecast}`;
+
+    const i = data.inputs || {};
+    document.getElementById("w-temp").textContent = `${parseFloat(i.temperature || 0).toFixed(1)}°C`;
+    document.getElementById("w-rain").textContent = `${parseFloat(i.precipitation || 0).toFixed(2)}mm`;
+    document.getElementById("w-cloud").textContent = `${parseFloat(i.cloudcover || 0).toFixed(1)}%`;
+
+    document.getElementById("w-note").textContent = data.logic_note;
+    document.getElementById("cluster-visual-result").style.display = "block";
+}
