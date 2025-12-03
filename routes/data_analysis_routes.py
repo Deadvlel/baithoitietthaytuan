@@ -30,7 +30,8 @@ def api_chart_data(
         + 'time_series'          -> line/scatter theo thời gian (trong `days` ngày gần nhất)
         + 'histogram'            -> histogram trong `days` ngày gần nhất
         + 'trend_monthly'        -> trend resample theo tháng
-        + 'seasonality_monthly'  -> seasonal line theo Month (1-12)
+        + 'seasonality_monthly'  -> seasonal line theo Month (1-12) (trung bình các năm)
+        + 'seasonal_yearly_comparison' -> so sánh seasonal line theo Month (1-12) của tất cả các năm
     - days: số ngày gần nhất dùng cho time_series / histogram
     - bins: số bins cho histogram
     """
@@ -53,4 +54,3 @@ def api_chart_data(
         return {"status": "error", "message": str(e)}
     except Exception as e:
         return {"status": "error", "message": f"Internal error: {e}"}
-

@@ -5,143 +5,355 @@
   <meta charset="UTF-8" />
   <title>Weather AI Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/static/style.css" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --primary-color: #4361ee;
+      --primary-hover: #3a56d4;
+      --secondary-color: #3f37c9;
+      --accent-color: #4cc9f0;
+      --bg-color: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- Header --- */
+    .app-header {
+      background-color: var(--card-bg);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .app-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .app-header p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+    }
+    .app-header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f9fafb;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    /* --- Main Layout --- */
+    .app-main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    /* --- Tabs --- */
+    .nav-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1px;
+    }
+    .tab-button {
+      background: none;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab-button:hover { color: var(--primary-color); }
+    .tab-button.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      font-weight: 600;
+    }
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- Grid & Cards --- */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: #f9fafb;
+    }
+    .card-header h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .card-body { padding: 1.5rem; flex: 1; }
+
+    /* --- Forms & Inputs --- */
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+    input[type="date"], input[type="number"], select {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background-color: #fff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+    }
+    .field-row {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 1rem;
+    }
+    .field-row input { flex: 1; }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    /* --- Buttons --- */
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button[id^="btn-"] {
+      background-color: var(--primary-color);
+      color: white;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    button[id^="btn-"]:hover { background-color: var(--primary-hover); }
+    #btn-q3-compare {
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
+        margin-left: 0.5rem;
+    }
+    #btn-q3-compare:hover { background-color: #e5e7eb; }
+
+    /* --- Results & Controls --- */
+    .result-box {
+      background-color: #1e293b;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid #334155;
+    }
+    .result-box.small { font-size: 0.75rem; max-height: 400px; }
+    
+    .analysis-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      align-items: flex-end;
+      border: 1px solid var(--border-color);
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      min-width: 150px;
+    }
+    .analysis-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .analysis-chart-wrapper {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      height: 400px;
+      position: relative;
+    }
+    .analysis-side h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    @media (max-width: 768px) {
+      .app-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .grid-2, .field-grid, .analysis-layout { grid-template-columns: 1fr; }
+      .analysis-controls { flex-direction: column; align-items: stretch; }
+      .control-group { width: 100%; }
+      .nav-tabs { overflow-x: auto; white-space: nowrap; }
+    }
+  </style>
 </head>
 
 <body>
   <div class="app">
     <header class="app-header">
       <div class="app-header-left">
-        <h1>Weather AI Dashboard</h1>
-        <p>Theo dõi dự báo, phân cụm và phân tích dữ liệu thời tiết từ hệ thống AI.</p>
+        <h1><i class="fa-solid fa-cloud-bolt"></i> Weather AI Dashboard</h1>
+        <p>Theo dõi dự báo, phân cụm và phân tích dữ liệu thời tiết thông minh.</p>
       </div>
       <div class="app-header-right">
-        <span class="badge badge-live"></span>
+        <span class="badge"></span>
         <span class="badge-text">Backend: FastAPI</span>
       </div>
     </header>
 
     <main class="app-main">
-      <section class="nav-tabs" aria-label="Weather sections">
-        <button class="tab-button active" data-tab="tab-forecast">Dự báo</button>
-        <button class="tab-button" data-tab="tab-cluster">Cluster</button>
-        <button class="tab-button" data-tab="tab-analysis">Phân tích dữ liệu</button>
-      </section>
+      <nav class="nav-tabs" aria-label="Weather sections">
+        <button class="tab-button active" data-tab="tab-analysis">
+            <i class="fa-solid fa-chart-line"></i> Phân tích dữ liệu
+        </button>
+        <button class="tab-button" data-tab="tab-forecast">
+            <i class="fa-solid fa-calendar-days"></i> Dự báo
+        </button>
+        <button class="tab-button" data-tab="tab-cluster">
+            <i class="fa-solid fa-diagram-project"></i> Clustering
+        </button>
+      </nav>
 
-      <!-- TAB: Forecast -->
-      <section id="tab-forecast" class="tab-panel active">
-        <div class="grid-2">
-          <section class="card">
-            <header class="card-header">
-              <div>
-                <h2>Dự báo theo ngày</h2>
-                <p class="card-subtitle">Chọn ngày để xem dự báo thời tiết.</p>
-              </div>
-            </header>
-            <div class="card-body">
-              <div class="field-row">
-                <label for="predict-date">Ngày (YYYY-MM-DD)</label>
-                <input type="date" id="predict-date" />
-                <button id="btn-predict">Lấy dự báo</button>
-              </div>
-              <pre id="predict-result" class="result-box">Kết quả dự báo sẽ hiển thị ở đây...</pre>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <!-- TAB: Cluster -->
-      <section id="tab-cluster" class="tab-panel">
-        <div class="grid-2">
-          <section class="card">
-            <header class="card-header">
-              <div>
-                <h2>Cluster tự động</h2>
-                <p class="card-subtitle">Dùng bản ghi dự báo mới nhất trong DB.</p>
-              </div>
-            </header>
-            <div class="card-body">
-              <button id="btn-cluster-auto">Chạy cluster auto</button>
-              <pre id="cluster-auto-result" class="result-box">Kết quả cluster auto sẽ hiển thị ở đây...</pre>
-            </div>
-          </section>
-
-          <section class="card">
-            <header class="card-header">
-              <div>
-                <h2>Cluster nhập tay</h2>
-                <p class="card-subtitle">Nhập precipitation, cloudcover, temperature.</p>
-              </div>
-            </header>
-            <div class="card-body">
-              <div class="field-grid">
-                <div>
-                  <label for="precipitation">Precipitation</label>
-                  <input type="number" step="0.01" id="precipitation" placeholder="mm" />
-                </div>
-                <div>
-                  <label for="cloudcover">Cloudcover</label>
-                  <input type="number" step="0.01" id="cloudcover" placeholder="%" />
-                </div>
-                <div>
-                  <label for="temperature">Temperature</label>
-                  <input type="number" step="0.01" id="temperature" placeholder="°C" />
-                </div>
-              </div>
-              <button id="btn-cluster-manual">Chạy cluster manual</button>
-              <pre id="cluster-manual-result" class="result-box">Kết quả cluster manual sẽ hiển thị ở đây...</pre>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <!-- TAB: Analysis -->
-      <section id="tab-analysis" class="tab-panel">
-        <!-- Câu 1 -->
-        <section class="card">
+      <section id="tab-analysis" class="tab-panel active">
+        
+        <section class="card" style="margin-bottom: 2rem;">
           <header class="card-header">
             <div>
-              <h2>Câu 1 – Dữ liệu theo thời gian</h2>
-              <p class="card-subtitle">
-                Chọn biến, kiểu chart (Line / Scatter / Histogram) và khoảng thời gian (tuần / tháng).
-              </p>
+              <h2><i class="fa-solid fa-chart-area"></i> Phân tích theo thời gian</h2>
+              <p class="card-subtitle">Biểu diễn sự thay đổi của các biến thời tiết theo tuần hoặc tháng.</p>
             </div>
           </header>
           <div class="card-body">
             <div class="analysis-controls">
               <div class="control-group">
-                <label for="q1-variable">Biến</label>
+                <label for="q1-variable">Biến số</label>
                 <select id="q1-variable">
-                  <option value="temperature">Temperature</option>
-                  <option value="relative_humidity">Relative Humidity</option>
-                  <option value="precipitation">Precipitation</option>
+                  <option value="temperature">Nhiệt độ (Temperature)</option>
+                  <option value="relative_humidity">Độ ẩm (Humidity)</option>
+                  <option value="precipitation">Lượng mưa (Precipitation)</option>
                 </select>
               </div>
 
               <div class="control-group">
-                <label for="q1-chart-type">Loại chart</label>
+                <label for="q1-chart-type">Loại biểu đồ</label>
                 <select id="q1-chart-type">
-                  <option value="line">Line</option>
-                  <option value="scatter">Scatter</option>
-                  <option value="histogram">Histogram</option>
+                  <option value="line">Đường (Line)</option>
+                  <option value="scatter">Phân tán (Scatter)</option>
+                  <option value="histogram">Tần suất (Histogram)</option>
                 </select>
               </div>
 
-              <div class="control-group control-inline">
-                <label for="q1-window">Khoảng thời gian</label>
+              <div class="control-group">
+                <label for="q1-window">Thời gian</label>
                 <select id="q1-window">
-                  <option value="7">7 ngày (tuần)</option>
-                  <option value="30" selected>30 ngày (tháng)</option>
+                  <option value="7">7 ngày qua</option>
+                  <option value="30" selected>30 ngày qua</option>
                 </select>
               </div>
 
-              <div class="control-group control-inline">
-                <label for="q1-bins">Bins (nếu là histogram)</label>
+              <div class="control-group">
+                <label for="q1-bins">Bins (Histogram)</label>
                 <input type="number" id="q1-bins" min="5" max="80" value="20" />
               </div>
 
-              <div class="control-actions">
-                <button id="btn-q1-draw">Vẽ chart Câu 1</button>
+              <div class="control-group" style="justify-content: flex-end;">
+                  <button id="btn-q1-draw">Vẽ biểu đồ</button>
               </div>
             </div>
 
@@ -150,92 +362,182 @@
                 <canvas id="q1-chart"></canvas>
               </div>
               <div class="analysis-side">
-                <h3>Chi tiết dữ liệu (Câu 1)</h3>
-                <pre id="q1-result" class="result-box small">Thông tin response sẽ hiển thị ở đây...</pre>
+                <h3>Chi tiết dữ liệu</h3>
+                <pre id="q1-result" class="result-box small">Waiting for data...</pre>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Câu 2 -->
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <h2>Câu 2 – Trend (monthly)</h2>
-              <p class="card-subtitle">
-                Chọn biến và xem xu hướng sau khi resample dữ liệu theo tháng.
-              </p>
-            </div>
-          </header>
-          <div class="card-body">
-            <div class="analysis-controls">
-              <div class="control-group">
-                <label for="q2-variable">Biến</label>
-                <select id="q2-variable">
-                  <option value="temperature">Temperature</option>
-                  <option value="relative_humidity">Relative Humidity</option>
-                  <option value="precipitation">Precipitation</option>
-                </select>
-              </div>
-              <div class="control-actions">
-                <button id="btn-q2-draw">Vẽ trend Câu 2</button>
-              </div>
-            </div>
+        <div class="grid-2">
+            <section class="card">
+            <header class="card-header">
+                <div>
+                <h2><i class="fa-solid fa-arrow-trend-up"></i> Xu hướng tháng (Trend)</h2>
+                <p class="card-subtitle">Resample dữ liệu theo tháng để xem xu hướng chung.</p>
+                </div>
+            </header>
+            <div class="card-body">
+                <div class="analysis-controls" style="flex-wrap: nowrap;">
+                <div class="control-group" style="flex:1;">
+                    <label for="q2-variable">Biến số</label>
+                    <select id="q2-variable">
+                    <option value="temperature">Temperature</option>
+                    <option value="relative_humidity">Relative Humidity</option>
+                    <option value="precipitation">Precipitation</option>
+                    </select>
+                </div>
+                <div class="control-group" style="justify-content: flex-end;">
+                    <button id="btn-q2-draw">Xem Trend</button>
+                </div>
+                </div>
 
-            <div class="analysis-layout">
-              <div class="analysis-chart-wrapper">
-                <canvas id="q2-chart"></canvas>
-              </div>
-              <div class="analysis-side">
-                <h3>Chi tiết dữ liệu (Câu 2)</h3>
-                <pre id="q2-result" class="result-box small">Thông tin response sẽ hiển thị ở đây...</pre>
-              </div>
+                <div class="analysis-chart-wrapper" style="height: 300px;">
+                    <canvas id="q2-chart"></canvas>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label>Log:</label>
+                    <pre id="q2-result" class="result-box small" style="max-height: 150px;">...</pre>
+                </div>
             </div>
-          </div>
-        </section>
+            </section>
 
-        <!-- Câu 3 -->
-        <section class="card">
-          <header class="card-header">
-            <div>
-              <h2>Câu 3 – Seasonal line (monthly)</h2>
-              <p class="card-subtitle">
-                Chọn biến và xem seasonal pattern theo tháng (1–12).
-              </p>
-            </div>
-          </header>
-          <div class="card-body">
-            <div class="analysis-controls">
-              <div class="control-group">
-                <label for="q3-variable">Biến</label>
-                <select id="q3-variable">
-                  <option value="temperature">Temperature</option>
-                  <option value="relative_humidity">Relative Humidity</option>
-                  <option value="precipitation">Precipitation</option>
-                </select>
-              </div>
-              <div class="control-actions">
-                <button id="btn-q3-draw">Vẽ seasonal Câu 3</button>
-              </div>
-            </div>
+            <section class="card">
+            <header class="card-header">
+                <div>
+                    <h2><i class="fa-solid fa-snowflake"></i> Tính mùa vụ (Seasonality)</h2>
+                    <p class="card-subtitle">So sánh pattern giữa các tháng (1-12) qua các năm.</p>
+                </div>
+            </header>
+            <div class="card-body">
+                <div class="analysis-controls" style="flex-wrap: nowrap;">
+                    <div class="control-group" style="flex:1;">
+                        <label for="q3-variable">Biến số</label>
+                        <select id="q3-variable">
+                            <option value="temperature">Temperature</option>
+                            <option value="relative_humidity">Relative Humidity</option>
+                            <option value="precipitation">Precipitation</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem; display: flex;">
+                    <button id="btn-q3-draw" style="flex: 1; margin-right: 5px;">Vẽ Line</button>
+                    <button id="btn-q3-compare" style="flex: 1; margin-left: 5px;">So sánh năm</button> 
+                </div>
 
-            <div class="analysis-layout">
-              <div class="analysis-chart-wrapper">
-                <canvas id="q3-chart"></canvas>
-              </div>
-              <div class="analysis-side">
-                <h3>Chi tiết dữ liệu (Câu 3)</h3>
-                <pre id="q3-result" class="result-box small">Thông tin response sẽ hiển thị ở đây...</pre>
-              </div>
+                <div class="analysis-chart-wrapper" style="height: 300px;">
+                    <canvas id="q3-chart"></canvas>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label>Log:</label>
+                    <pre id="q3-result" class="result-box small" style="max-height: 150px;">...</pre>
+                </div>
             </div>
-          </div>
-        </section>
+            </section> 
+        </div>
       </section>
+
+      <section id="tab-forecast" class="tab-panel">
+        <div class="grid-2">
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <h2>Dự báo theo ngày</h2>
+                <p class="card-subtitle">Chọn ngày cụ thể để mô hình AI đưa ra dự đoán.</p>
+              </div>
+            </header>
+            <div class="card-body">
+              <div class="field-row">
+                <div style="flex:1">
+                    <label for="predict-date">Ngày dự báo</label>
+                    <input type="date" id="predict-date" />
+                </div>
+                <button id="btn-predict"><i class="fa-solid fa-search"></i> &nbsp;Lấy dự báo</button>
+              </div>
+              <label>Kết quả:</label>
+              <pre id="predict-result" class="result-box">Đang chờ dữ liệu đầu vào...</pre>
+            </div>
+          </section>
+          
+          <section class="card" style="justify-content: center; align-items: center; background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%); color: white; border: none;">
+              <div style="text-align: center;">
+                  <i class="fa-solid fa-temperature-half" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.8;"></i>
+                  <h2>AI Weather Model</h2>
+                  <p style="opacity: 0.9; font-size: 0.9rem;">Hệ thống dự đoán thời tiết tự động</p>
+              </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="tab-cluster" class="tab-panel">
+        <div class="grid-2">
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <h2>Cluster Tự động</h2>
+                <p class="card-subtitle">Sử dụng dữ liệu bản ghi mới nhất từ Database.</p>
+              </div>
+            </header>
+            <div class="card-body">
+              <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Hệ thống sẽ tự động lấy dữ liệu weather hiện tại và chạy thuật toán phân cụm (K-Means/DBSCAN).</p>
+              <button id="btn-cluster-auto"><i class="fa-solid fa-robot"></i> &nbsp;Chạy Auto Cluster</button>
+              <pre id="cluster-auto-result" class="result-box">...</pre>
+            </div>
+          </section>
+
+          <section class="card">
+            <header class="card-header">
+              <div>
+                <h2>Cluster Nhập tay</h2>
+                <p class="card-subtitle">Nhập thông số đầu vào để test phân cụm.</p>
+              </div>
+            </header>
+            <div class="card-body">
+              <div class="field-grid">
+                <div>
+                  <label for="precipitation">Mưa (mm)</label>
+                  <input type="number" step="0.01" id="precipitation" placeholder="0.0" />
+                </div>
+                <div>
+                  <label for="cloudcover">Mây (%)</label>
+                  <input type="number" step="0.01" id="cloudcover" placeholder="0-100" />
+                </div>
+                <div>
+                  <label for="temperature">Nhiệt độ (°C)</label>
+                  <input type="number" step="0.01" id="temperature" placeholder="25.5" />
+                </div>
+              </div>
+              <button id="btn-cluster-manual"><i class="fa-solid fa-sliders"></i> &nbsp;Chạy Manual</button>
+              <pre id="cluster-manual-result" class="result-box">...</pre>
+            </div>
+          </section>
+        </div>
+      </section>
+
     </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+      // Logic tab đơn giản
+      document.addEventListener('DOMContentLoaded', () => {
+          const buttons = document.querySelectorAll('.tab-button');
+          const panels = document.querySelectorAll('.tab-panel');
+
+          buttons.forEach(btn => {
+              btn.addEventListener('click', () => {
+                  buttons.forEach(b => b.classList.remove('active'));
+                  panels.forEach(p => p.classList.remove('active'));
+
+                  btn.classList.add('active');
+                  const tabId = btn.getAttribute('data-tab');
+                  document.getElementById(tabId).classList.add('active');
+              });
+          });
+      });
+  </script>
+  
   <script src="/static/script.js"></script>
 </body>
-
 </html>

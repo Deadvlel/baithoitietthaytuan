@@ -157,7 +157,7 @@ def get_trend_data(variable: str) -> Dict[str, Any]:
 
 def get_seasonality_data(variable: str) -> Dict[str, Any]:
     """
-    Seasonal line: dữ liệu re-sampling về tháng, group theo Month (1-12).
+    Seasonal line (Trung bình): dữ liệu re-sampling về tháng, group theo Month (1-12).
     """
     var = _validate_variable(variable)
 
@@ -170,6 +170,7 @@ def get_seasonality_data(variable: str) -> Dict[str, Any]:
     if monthly.empty:
         return None
 
+    # Tính trung bình của tất cả các năm cho mỗi tháng
     seasonal = monthly.groupby(monthly.index.month).mean()
 
     points = [
@@ -186,6 +187,69 @@ def get_seasonality_data(variable: str) -> Dict[str, Any]:
     }
 
 
+def get_seasonal_comparison_data(variable: str) -> Dict[str, Any]:
+    """
+    Seasonal line comparison: dữ liệu re-sampling về tháng, so sánh giữa tất cả các năm có sẵn.
+    """
+    var = _validate_variable(variable)
+
+    df = load_data()
+    if df is None:
+        return None
+
+    # 1. Re-sample về monthly mean
+    monthly = df[var].resample("M").mean().dropna()
+    if monthly.empty:
+        return None
+
+    # *** LOGIC MỚI: TỰ ĐỘNG LẤY TẤT CẢ CÁC NĂM CÓ DỮ LIỆU ***
+    
+    # 2. Tạo cột Year và Month cho pivot
+    monthly_df = monthly.to_frame(name=var)
+    monthly_df["Year"] = monthly_df.index.year
+    monthly_df["Month"] = monthly_df.index.month
+
+    # 3. Pivot: Month làm index, Year làm columns
+    pivoted_df = monthly_df.pivot(index="Month", columns="Year", values=var)
+
+    # 4. Chuyển đổi thành format cho frontend (nhiều series)
+    datasets = []
+    # Lấy tất cả các cột Năm có trong pivoted_df (ví dụ: [2024, 2025, 2026] nếu dữ liệu có)
+    years = sorted(pivoted_df.columns.tolist()) 
+
+    # Chỉ so sánh những năm có đủ dữ liệu từ 2024 trở đi.
+    # Nếu muốn so sánh tất cả các năm, chỉ cần bỏ qua bước này.
+    # Ở đây, ta sẽ chỉ lấy các năm >= 2024 theo yêu cầu ban đầu.
+    years = [y for y in years if y >= 2024]
+    
+    for year in years:
+        series_data = pivoted_df[year].dropna()
+        # Đảm bảo trục x (Month) có giá trị từ 1-12
+        points = [
+            {"x": int(month), "y": float(val)}
+            for month, val in series_data.items()
+        ]
+        datasets.append(
+            {
+                "label": str(year), # Label là tên năm (vd: "2024")
+                "points": points,
+            }
+        )
+    
+    # Lọc bỏ nếu không có năm nào >= 2024
+    if not datasets:
+        return None
+
+    return {
+        "kind": "seasonal_yearly_comparison",
+        "variable": var,
+        "x_label": "Month (1-12)",
+        "y_label": var,
+        "datasets": datasets, # Trả về list datasets thay vì points
+        "years": years,
+    }
+
+
 def get_chart_data(
     variable: str,
     chart_kind: Literal[
@@ -193,17 +257,12 @@ def get_chart_data(
         "histogram",
         "trend_monthly",
         "seasonality_monthly",
+        "seasonal_yearly_comparison", # Đã thêm loại chart mới
     ] = "time_series",
     days: int = 30,
     bins: int = 20,
 ) -> Dict[str, Any]:
-    """
-    Hàm tổng cho routes gọi, hỗ trợ nhiều loại chart:
-    - chart_kind = 'time_series'        -> time series trong N ngày (dùng cho line & scatter)
-    - chart_kind = 'histogram'          -> histogram trong N ngày
-    - chart_kind = 'trend_monthly'      -> trend theo tháng (resample M)
-    - chart_kind = 'seasonality_monthly'-> seasonal line theo Month (1-12)
-    """
+
     if chart_kind == "time_series":
         return get_time_series_data(variable, days)
     if chart_kind == "histogram":
@@ -212,8 +271,10 @@ def get_chart_data(
         return get_trend_data(variable)
     if chart_kind == "seasonality_monthly":
         return get_seasonality_data(variable)
+    if chart_kind == "seasonal_yearly_comparison": # Routing mới
+        return get_seasonal_comparison_data(variable)
 
     raise ValueError(
         "chart_kind không hợp lệ. Hỗ trợ: "
-        "'time_series', 'histogram', 'trend_monthly', 'seasonality_monthly'"
+        "'time_series', 'histogram', 'trend_monthly', 'seasonality_monthly', 'seasonal_yearly_comparison'"
     )
