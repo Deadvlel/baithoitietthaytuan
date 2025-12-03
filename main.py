@@ -44,8 +44,7 @@ def serve_frontend():
 def scheduled_job():
     today_str = datetime.now().strftime("%Y-%m-%d")
     result = predict_controller.predict_weather_next_day(today_str)
-    if result is not None and not result.empty:
-        predict_controller.db["predictions_log"].insert_many(result.to_dict(orient="records"))
+    if result is not None:
         print(f"[{datetime.now()}] Auto predict saved for {today_str}")
 
 
